@@ -68,7 +68,7 @@ touch "$DIST/.nojekyll"
 cp "$DIST/index.html" "$DIST/404.html"
 
 echo "==> 产物检查"
-for f in index.html 404.html .nojekyll fonts/pixel-12-zh-hans.bin; do
+for f in index.html 404.html .nojekyll fonts/NOTICE.txt fonts/pixel-8-fusion-mono.bin fonts/pixel-16-unifont.bin; do
     if [ -e "$DIST/$f" ]; then
         echo "    ✓ $f"
     else
