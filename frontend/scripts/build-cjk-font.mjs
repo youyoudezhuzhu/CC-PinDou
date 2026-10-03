@@ -29,7 +29,7 @@
  *   public/fonts/NOTICE.txt             字体授权与出处
  */
 
-import { mkdir, writeFile, readFile, stat } from 'node:fs/promises';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
