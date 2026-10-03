@@ -11,6 +11,35 @@ export interface GridCell {
   codes: Record<string, string>; // { MARD: 'A01', COCO: 'E02' }
 }
 
+// =============================================================================
+// 像素文字对象（绘制模式「文字工具」）
+// =============================================================================
+
+/**
+ * 像素文字对象。
+ *
+ * 注意：它不是一份独立的绘图数据 —— 它只是文字工具的编辑态。
+ * 落盘时会被展开成真实的 GridCell 写入 gridData，
+ * 因此颜色统计 / 导出 / 保存 / Undo 全部与手绘拼豆完全同构。
+ */
+export interface TextObject {
+  type: 'text';
+  id: string;
+  /** 用户输入的文字，支持 '\n' 换行 */
+  text: string;
+  /** 点阵字体 id，见 engine/pixelFont.ts */
+  font: string;
+  /** 倍数：1× 时 1 个点阵像素 = 1 颗拼豆，2× = 2×2 颗，以此类推 */
+  scale: number;
+  /** 文字颜色（拼豆 hex），对应 GridCell.color */
+  color: string;
+  /** 各品牌色号，对应 GridCell.codes */
+  codes: Record<string, string>;
+  /** 锚点（文字左上角）网格坐标，必须为整数 */
+  x: number;
+  y: number;
+}
+
 /** 颜色统计信息 */
 export interface ColorInfo {
   hex: string;
@@ -34,6 +63,12 @@ export type HistoryAction =
       type: 'batch_paint';
       layerId: string;
       tool?: string;
+      /**
+       * 活动对象标识（像素文字工具等）。
+       * 同一对象反复编辑时用它在历史栈中定位并替换自己的记录，
+       * 从而保证「一段文字 = 一步撤销」。
+       */
+      placementId?: string;
       positions: Array<{
         x: number;
         y: number;
