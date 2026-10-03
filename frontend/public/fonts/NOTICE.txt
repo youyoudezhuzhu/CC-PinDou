@@ -1,0 +1,14 @@
+本目录下的 pixel-12-zh-hans.bin 由脚本 scripts/build-cjk-font.mjs 生成。
+
+字形来源：Fusion Pixel Font（缝合像素字体）12px 等宽 zh_Hans
+  https://github.com/TakWolf/fusion-pixel-font
+  Copyright (c) 2022, TakWolf (https://takwolf.com)
+  字形部分以 SIL Open Font License 1.1 授权（见 LICENSE-OFL）。
+  本数据是该项目字形的子集化二进制转换，同样遵循 OFL-1.1。
+
+该字体是真正的点阵（bitmap）字体：每个字形由设计师逐像素手工绘制，
+而非把轮廓字体缩小后栅格化，因此在 12px 下汉字笔画依然清晰可辨。
+
+生成参数：subset=gb2312-1，字形 4020 个，12×12px。
+
+SIL Open Font License 1.1 全文见 https://openfontlicense.org
