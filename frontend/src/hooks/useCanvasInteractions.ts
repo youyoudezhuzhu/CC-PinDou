@@ -2,7 +2,9 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import { useUIStore } from '../store/useUIStore';
 import { useConfigStore } from '../store/useConfigStore';
+import { useTextStore } from '../store/useTextStore';
 import { PerlerEngine } from '../engine/PerlerEngine';
+import { textObjectSize } from '../engine/pixelText';
 import colorMappingJson from '../data/colorSystemMapping.json';
 import type { ColorMapping, ColorInfo } from '../types/perler';
 import { toast } from '@/components/ui/toast';
@@ -64,6 +66,35 @@ export function useCanvasInteractions(
   const lastPosRef = useRef<{ x: number; y: number } | null>(null);
   const imageDragStartRef = useRef<{ x: number; y: number; transformX: number; transformY: number } | null>(null);
   const beadDragStartRef = useRef<{ x: number; y: number; transformX: number; transformY: number } | null>(null);
+
+  // 文字工具：锚点拖动（严格整数网格坐标）
+  const textDragRef = useRef<{
+    pointerX: number;
+    pointerY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
+
+  /**
+   * 不带边界裁剪的网格坐标。
+   * 文字锚点允许落在画布外（超出的拼豆会被裁剪），因此不能复用 getGridXY 的越界返回 null。
+   */
+  const getUnboundedGridXY = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = e.currentTarget;
+    if (!canvas) return null;
+    const { beadSize, margin } = useConfigStore.getState().canvasConfig;
+    if (!beadSize) return null;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const canvasX = (e.clientX - rect.left) * scaleX;
+    const canvasY = (e.clientY - rect.top) * scaleY;
+    return {
+      x: Math.floor((canvasX - margin) / beadSize),
+      y: Math.floor((canvasY - margin) / beadSize),
+    };
+  }, []);
 
   // 选区移动
   const isSelectionMovingRef = useRef(false);
@@ -226,6 +257,45 @@ export function useCanvasInteractions(
 
       if (activeLayerLocked) return;
 
+      // ─── 文字工具：点击定位锚点 / 拖动移动（只允许整数网格坐标） ───
+      if (isDrawMode && drawTool === 'text' && !isImageLayer) {
+        const raw = getUnboundedGridXY(e);
+        if (raw) {
+          const textState = useTextStore.getState();
+          const object = textState.object ?? textState.ensureText();
+          if (object) {
+            const size = textObjectSize(object);
+            const insideBlock =
+              raw.x >= object.x &&
+              raw.x < object.x + size.width &&
+              raw.y >= object.y &&
+              raw.y < object.y + size.height;
+
+            if (!insideBlock) {
+              // 点在文字块之外：锚点直接落到点击处（文字左上角对齐光标）
+              textState.setAnchor(raw.x, raw.y);
+              textDragRef.current = {
+                pointerX: raw.x,
+                pointerY: raw.y,
+                originX: raw.x,
+                originY: raw.y,
+              };
+            } else {
+              // 点在文字块之内：按相对位移拖动，避免文字“跳”到光标下
+              textDragRef.current = {
+                pointerX: raw.x,
+                pointerY: raw.y,
+                originX: object.x,
+                originY: object.y,
+              };
+            }
+            scheduleDrawGrid();
+          }
+        }
+        e.preventDefault();
+        return;
+      }
+
       const pos = getGridXY(e);
       if (!pos) return;
 
@@ -278,13 +348,31 @@ export function useCanvasInteractions(
     },
     [
       spacePressed, activeLayerId,
-      isDrawMode, drawTool, getGridXY, paintCell, paintAt, floodFill,
-      pushHistory, scheduleDrawGrid, startDrag, replaceColorGlobally,
+      isDrawMode, drawTool, getGridXY, getUnboundedGridXY, paintCell, paintAt, floodFill,
+      pushHistory, scheduleDrawGrid, startDrag, replaceColorGlobally, isImageLayer,
     ],
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
+      // 文字锚点拖动（整数网格吸附）
+      if (textDragRef.current && e.buttons === 1) {
+        const raw = getUnboundedGridXY(e);
+        if (raw) {
+          const drag = textDragRef.current;
+          const object = useTextStore.getState().object;
+          if (object) {
+            const nextX = drag.originX + (raw.x - drag.pointerX);
+            const nextY = drag.originY + (raw.y - drag.pointerY);
+            if (nextX !== object.x || nextY !== object.y) {
+              useTextStore.getState().setAnchor(nextX, nextY);
+              scheduleDrawGrid();
+            }
+          }
+        }
+        return;
+      }
+
       // Image layer drag
       if (imageDragStartRef.current && e.buttons === 1) {
         const state = useEditorStore.getState();
@@ -436,7 +524,7 @@ export function useCanvasInteractions(
     },
     [
       isDragging, spacePressed, isBatchPainting, activeLayerId, isImageLayer,
-      isDrawMode, drawTool, getGridXY, paintCell, paintAt,
+      isDrawMode, drawTool, getGridXY, getUnboundedGridXY, paintCell, paintAt,
       scheduleDrawGrid, onDragMove, pushHistory, brushSize, setBrushPreview,
     ],
   );
@@ -497,6 +585,11 @@ export function useCanvasInteractions(
 
   const handleMouseUp = useCallback(async () => {
     stopDrag();
+
+    if (textDragRef.current) {
+      textDragRef.current = null;
+      return;
+    }
 
     // Eyedropper：图片图层松开时执行吸色
     if (eyedropperPreviewRef.current?.active) {
@@ -702,6 +795,10 @@ export function useCanvasInteractions(
     };
 
     const handleGlobalMouseUp = async () => {
+      if (textDragRef.current) {
+        textDragRef.current = null;
+        return;
+      }
       // Eyedropper：在 canvas 外松开时也执行吸色
       if (eyedropperPreviewRef.current?.active) {
         eyedropperPreviewRef.current.active = false;

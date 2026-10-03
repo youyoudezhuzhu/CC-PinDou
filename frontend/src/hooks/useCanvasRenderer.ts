@@ -2,7 +2,9 @@ import { useRef, useCallback, useEffect, useMemo } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import { useConfigStore } from '../store/useConfigStore';
 import { useUIStore } from '../store/useUIStore';
-import type { GridCell, PerlerLayer } from '../types/perler';
+import { useTextStore } from '../store/useTextStore';
+import { textObjectSize, textObjectToCells } from '../engine/pixelText';
+import type { GridCell, PerlerLayer, TextObject } from '../types/perler';
 
 export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   // 使用精确 selector 订阅，避免单字段更新触发整个 hook 重执行
@@ -16,6 +18,9 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
   const canvasConfig = useConfigStore((s) => s.canvasConfig);
   const mode = useUIStore((s) => s.mode);
   const symmetryMode = useUIStore((s) => s.symmetryMode);
+  const drawTool = useUIStore((s) => s.drawTool);
+  const textObject = useTextStore((s) => s.object);
+  const textPlacement = useTextStore((s) => s.placement);
 
   const { beadSize, margin, zoomLevel, showCode, circleMode, showMarkLines, markInterval } = canvasConfig;
 
@@ -524,6 +529,18 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
 
       ctx.restore();
     }
+
+    // 像素文字实时预览：仅在尚未落盘时叠加显示；
+    // 一旦点「放置文字」，预览就变成 gridData 里的真实拼豆，不再需要叠加层。
+    if (mode === 'draw' && drawTool === 'text' && textObject && !textPlacement) {
+      drawTextPreview(ctx, {
+        object: textObject,
+        beadSize,
+        margin,
+        rows,
+        cols,
+      });
+    }
   }, [
     gridData,
     layers,
@@ -538,6 +555,9 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
     brand,
     mode,
     symmetryMode,
+    drawTool,
+    textObject,
+    textPlacement,
     canvasRef,
     getTransparentPatterns,
     getBrightness,
@@ -848,6 +868,72 @@ function drawSymmetryLines(
     }
   }
 
+  ctx.restore();
+}
+
+/**
+ * 像素文字预览叠加层。
+ *
+ * 严格按整数网格坐标绘制，预览的每一格都对应放置后真实生成的拼豆格。
+ * 越界部分不绘制格子，但外框用红色提示「超出部分会被裁剪」。
+ */
+function drawTextPreview(
+  ctx: CanvasRenderingContext2D,
+  options: {
+    object: TextObject;
+    beadSize: number;
+    margin: number;
+    rows: number;
+    cols: number;
+  },
+) {
+  const { object, beadSize, margin, rows, cols } = options;
+  const size = textObjectSize(object);
+  if (size.width === 0 || size.height === 0) return;
+
+  const cells = textObjectToCells(object, { rows, cols });
+
+  ctx.save();
+  ctx.globalAlpha = 0.62;
+  ctx.fillStyle = object.color === 'transparent' ? '#9ca3af' : object.color;
+  for (const cell of cells) {
+    ctx.fillRect(margin + cell.x * beadSize, margin + cell.y * beadSize, beadSize, beadSize);
+  }
+  ctx.restore();
+
+  const originX = Math.round(object.x);
+  const originY = Math.round(object.y);
+  const bx = margin + originX * beadSize;
+  const by = margin + originY * beadSize;
+  const bw = size.width * beadSize;
+  const bh = size.height * beadSize;
+
+  const outOfBounds =
+    originX < 0 || originY < 0 || originX + size.width > cols || originY + size.height > rows;
+
+  // 整块外框：越界时转为红色警示
+  ctx.save();
+  ctx.strokeStyle = outOfBounds ? 'rgba(239, 68, 68, 0.95)' : 'rgba(43, 180, 171, 0.95)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.strokeRect(bx - 0.5, by - 0.5, bw + 1, bh + 1);
+  ctx.restore();
+
+  // 锚点十字准星（文字左上角）
+  ctx.save();
+  ctx.strokeStyle = 'rgba(43, 180, 171, 0.45)';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(bx - 8, by); ctx.lineTo(bx + 8, by);
+  ctx.moveTo(bx, by - 8); ctx.lineTo(bx, by + 8);
+  ctx.stroke();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(bx - 8, by); ctx.lineTo(bx + 8, by);
+  ctx.moveTo(bx, by - 8); ctx.lineTo(bx, by + 8);
+  ctx.stroke();
   ctx.restore();
 }
 

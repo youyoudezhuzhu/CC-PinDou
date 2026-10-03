@@ -1,15 +1,17 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useUIStore } from '../store/useUIStore';
 import { useEditorStore } from '../store/useEditorStore';
+import { useTextStore } from '../store/useTextStore';
 import { getModeTheme } from '../utils/theme';
 import { ColorPickerPopover } from './ColorPickerPopover';
 import { ToolPropertiesPopover } from './ToolPropertiesPopover';
+import { TextToolPanel } from './TextToolPanel';
 import { Modal } from './ui/modal';
 import { toast } from '@/components/ui/toast';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui';
 import {
-  Pencil, Minus, Square, Circle, PaintBucket, Eraser, Wand2, Replace, Move, Pipette,
+  Pencil, Minus, Square, Circle, PaintBucket, Eraser, Wand2, Replace, Move, Pipette, Type,
   RotateCw, FlipHorizontal, FlipVertical, RotateCcw,
   Grid3X3, LayoutGrid, Slash, Trash2, X,
 } from 'lucide-react';
@@ -24,6 +26,7 @@ const TOOLS = [
   { key: 'eraser' as const, label: '橡皮', icon: Eraser, hasProps: true },
   { key: 'wand' as const, label: '魔棒', icon: Wand2, hasProps: true },
   { key: 'replace' as const, label: '替换', icon: Replace, hasProps: true },
+  { key: 'text' as const, label: '文字', icon: Type, hasProps: false },
 ];
 
 const TRANSFORMS = [
@@ -83,6 +86,11 @@ export function DrawToolBar() {
       setDrawTool('pen');
     }
   }, [activeLayerId, layers, setDrawTool]);
+
+  // 离开文字工具即结束编辑会话：已放置的文字保持为普通拼豆，未放置的预览直接丢弃
+  useEffect(() => {
+    if (drawTool !== 'text') useTextStore.getState().endText();
+  }, [drawTool]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent, toolKey: string) => {
     e.preventDefault();
@@ -314,6 +322,12 @@ export function DrawToolBar() {
         onClose={() => { setToolPropsOpen(false); setToolPropsTarget(undefined); }}
         anchorEl={toolPropsAnchor}
         targetTool={toolPropsTarget}
+      />
+
+      {/* 文字工具面板 */}
+      <TextToolPanel
+        open={drawTool === 'text' && !isImageLayerActive}
+        onClose={() => setDrawTool('pen')}
       />
 
       {/* 变换右键菜单 */}

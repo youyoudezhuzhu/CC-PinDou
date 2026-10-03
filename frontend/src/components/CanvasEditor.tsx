@@ -5,7 +5,7 @@ import { useConfigStore } from '../store/useConfigStore';
 import { useProjectExport } from '../hooks/useProjectExport';
 import {
   Grid3X3, FolderOpen, Upload,
-  Pencil, Minus, Square, Circle, PaintBucket, Eraser, Wand2, Replace, Move, Pipette,
+  Pencil, Minus, Square, Circle, PaintBucket, Eraser, Wand2, Replace, Move, Pipette, Type,
   Paintbrush, Trash2, FlipHorizontal2, X,
 } from 'lucide-react';
 import { Card, Button } from '@/components/ui';
@@ -495,6 +495,7 @@ export function CanvasEditor({ onImageSelect }: CanvasEditorProps) {
                 case 'wand': return <Wand2 {...iconProps} />;
                 case 'replace': return <Replace {...iconProps} />;
                 case 'move': return <Move {...iconProps} />;
+                case 'text': return <Type {...iconProps} />;
                 case 'eyedropper': return <Pipette {...iconProps} />;
                 default: return null;
               }

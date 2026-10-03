@@ -11,7 +11,7 @@ interface UIState {
   lastSavedAt: number | null;
 
   // ========== 绘制模式参数 ==========
-  drawTool: 'pen' | 'line' | 'rect' | 'circle' | 'fill' | 'eraser' | 'wand' | 'replace' | 'move' | 'eyedropper';
+  drawTool: 'pen' | 'line' | 'rect' | 'circle' | 'fill' | 'eraser' | 'wand' | 'replace' | 'move' | 'eyedropper' | 'text';
   symmetryMode: 'none' | 'horizontal' | 'vertical' | 'quad' | 'diagonal' | 'diagonal_anti' | 'diagonal_quad';
   brushSize: number;                    // 当前激活工具的笔刷大小
   brushSizes: Record<string, number>;   // 每个工具独立的笔刷大小
