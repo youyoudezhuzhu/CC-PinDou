@@ -179,7 +179,7 @@ CC-PinDou/
 ### 克隆仓库
 
 ```bash
-git clone https://gitee.com/ccoooool/CC-PinDou.git
+git clone https://github.com/youyoudezhuzhu/CC-PinDou.git
 # 或
 git clone https://github.com/ccooooool/CC-PinDou.git
 
@@ -248,24 +248,11 @@ python -m pytest tests/ -v
 |------|----------|------|
 | 字体（文源圆体） | WenYuanFonts | [GitHub](https://github.com/takushun-wu/WenYuanFonts) |
 | 像素模式图标 | NES.css | [GitHub](https://github.com/nostalgic-css/NES.css) |
-| UI 设计系统 | NookUI | [Gitee](https://gitee.com/ccoooool/NookUI) |
+| UI 设计系统 | NookUI | — |
 | 灵感来源与参考 | perler-beads | [GitHub](https://github.com/Zippland/perler-beads) |
 
 > ⚠️ **版权声明**：像素模式图标中的角色形象版权归 Nintendo 所有。  
 > Nintendo owns the copyright of these characters. Please comply with the Nintendo guidelines and laws of the applicable jurisdiction.
-
----
-
-## 支持项目
-
-如果觉得本项目对你有帮助，欢迎打赏支持！
-
-> 打赏前请务必仔细检查付款账户（支付宝：粥叉叉 / 微信：淡定从容）。上述账户为唯一正式受捐账户。若发现账户信息与二维码不符，请立刻举报。打赏款项一经转账恕不退还，请慎重考虑。（未成年人请取得法定监护人许可后方可捐助）
-
-<p align="center">
-  <img src="打赏收款码/微信收款码.png" width="200" alt="微信收款码" />
-  <img src="打赏收款码/支付宝收款码.jpg" width="200" alt="支付宝收款码" />
-</p>
 
 ---
 
