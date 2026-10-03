@@ -12,10 +12,12 @@ import {
   DEFAULT_PIXEL_FONT_ID,
 } from '../engine/pixelFont';
 import {
-  CJK_PIXEL_FONT_META,
-  isCjkFontLoaded,
-  loadCjkPixelFont,
+  PACKED_PIXEL_FONTS,
+  getPackedFontMeta,
+  isPixelFontLoaded,
+  loadPixelFont,
 } from '../engine/pixelFontLoader';
+import { TextGlyphPreview } from './TextGlyphPreview';
 import {
   MAX_TEXT_SCALE,
   MIN_TEXT_SCALE,
@@ -47,8 +49,10 @@ export function TextToolPanel({ open, onClose }: TextToolPanelProps) {
   const place = useTextStore((s) => s.place);
   const removeText = useTextStore((s) => s.removeText);
 
-  const [cjkReady, setCjkReady] = useState(() => isCjkFontLoaded());
-  const [loadingFont, setLoadingFont] = useState(false);
+  const [loadedFonts, setLoadedFonts] = useState<string[]>(() =>
+    PACKED_PIXEL_FONTS.filter((meta) => isPixelFontLoaded(meta.id)).map((meta) => meta.id),
+  );
+  const [loadingFontId, setLoadingFontId] = useState<string | null>(null);
   const [followCurrentColor, setFollowCurrentColor] = useState(true);
 
   const bounds = useMemo(() => {
@@ -72,37 +76,41 @@ export function TextToolPanel({ open, onClose }: TextToolPanelProps) {
   }, [open, followCurrentColor, selectedColor?.hex]);
 
   const fontOptions = useMemo(() => {
-    const options = listPixelFonts().map((font) => ({ key: font.id, label: font.name }));
-    if (!options.some((option) => option.key === CJK_PIXEL_FONT_META.id)) {
-      options.push({
-        key: CJK_PIXEL_FONT_META.id,
-        label: cjkReady ? CJK_PIXEL_FONT_META.name : `${CJK_PIXEL_FONT_META.name}（首次需加载）`,
-      });
-    }
-    return options;
-  }, [cjkReady]);
+    // 内置字体（拉丁 5×7，无需联网）+ 全部打包点阵字体
+    const builtin = listPixelFonts()
+      .filter((font) => !getPackedFontMeta(font.id))
+      .map((font) => ({ key: font.id, label: `${font.name}（内置）` }));
+    const packed = PACKED_PIXEL_FONTS.map((meta) => ({
+      key: meta.id,
+      label: loadedFonts.includes(meta.id) ? meta.name : `${meta.name} · 首次加载`,
+    }));
+    return [...builtin, ...packed];
+  }, [loadedFonts]);
+
+  const activeFontMeta = getPackedFontMeta(object?.font ?? '');
 
   const handleFontChange = async (fontId: string) => {
     if (!object && !ensureText()) return;
-    if (fontId !== CJK_PIXEL_FONT_META.id) {
+    const meta = getPackedFontMeta(fontId);
+    if (!meta) {
       updateText({ font: fontId });
       return;
     }
-    if (isCjkFontLoaded()) {
-      setCjkReady(true);
+    if (isPixelFontLoaded(fontId)) {
+      setLoadedFonts((prev) => (prev.includes(fontId) ? prev : [...prev, fontId]));
       updateText({ font: fontId });
       return;
     }
-    setLoadingFont(true);
+    setLoadingFontId(fontId);
     try {
-      await loadCjkPixelFont();
-      setCjkReady(true);
-      updateText({ font: CJK_PIXEL_FONT_META.id });
-      toast.success('中文点阵字体已加载');
+      await loadPixelFont(fontId);
+      setLoadedFonts((prev) => (prev.includes(fontId) ? prev : [...prev, fontId]));
+      updateText({ font: fontId });
+      toast.success(`${meta.name} 已加载`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '中文点阵字体加载失败');
+      toast.error(error instanceof Error ? error.message : '字体加载失败');
     } finally {
-      setLoadingFont(false);
+      setLoadingFontId(null);
     }
   };
 
@@ -166,18 +174,30 @@ export function TextToolPanel({ open, onClose }: TextToolPanelProps) {
             value={font}
             options={fontOptions}
             onChange={handleFontChange}
-            disabled={loadingFont}
+            disabled={loadingFontId !== null}
             themeColor={theme.main}
           />
-          {loadingFont && (
-            <span className="text-[10px] text-[var(--text-muted)]">正在加载中文点阵字形…</span>
-          )}
-          {font === CJK_PIXEL_FONT_META.id && (
+          {loadingFontId && (
             <span className="text-[10px] text-[var(--text-muted)]">
-              点阵字形：{CJK_PIXEL_FONT_META.license}
+              正在加载点阵字形…（首次使用该字号需下载一次）
             </span>
           )}
         </label>
+
+        {/* 字形实时预览：与真正落盘的拼豆格一一对应 */}
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-bold text-[var(--text-muted)]">
+            字形预览（1 倍，放大倍率按此逐点展开）
+          </span>
+          <TextGlyphPreview text={text} font={font} color={object?.color} />
+          {activeFontMeta && (
+            <span className="text-[10px] text-[var(--text-muted)] leading-snug">
+              {activeFontMeta.desc}
+              <br />
+              点阵字形：{activeFontMeta.license}
+            </span>
+          )}
+        </div>
 
         {/* 倍率 */}
         <div className="flex flex-col gap-1">

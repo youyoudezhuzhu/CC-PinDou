@@ -14,6 +14,14 @@ import { useEditorStore } from '../store/useEditorStore';
 import { useTextStore } from '../store/useTextStore';
 import { useUIStore } from '../store/useUIStore';
 import { useConfigStore } from '../store/useConfigStore';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { listPixelFonts } from '../engine/pixelFont';
+import {
+  PACKED_PIXEL_FONTS,
+  getPackedFontMeta,
+  decodePackedFont,
+} from '../engine/pixelFontLoader';
 
 function resetStores() {
   useEditorStore.setState({
@@ -63,9 +71,31 @@ describe('TextToolPanel', () => {
     expect(screen.getByText('文字')).toBeInTheDocument();
     expect(screen.getByText('字体')).toBeInTheDocument();
     expect(screen.getByText('颜色')).toBeInTheDocument();
-    expect(screen.getByText(/倍率/)).toBeInTheDocument();
+    expect(screen.getByText(/^倍率（1 格 = 1 颗拼豆）$/)).toBeInTheDocument();
+    expect(screen.getByText(/字形预览/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /放置文字|更新文字/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /删除文字/ })).toBeInTheDocument();
+  });
+
+  it('字体下拉应提供多个真实点阵字体选项，且内置字体排在最前', () => {
+    // 内置 5×7 + 全部打包字体，至少 6 个选项
+    expect(PACKED_PIXEL_FONTS.length).toBeGreaterThanOrEqual(5);
+    const builtin = listPixelFonts().filter((f) => !getPackedFontMeta(f.id));
+    expect(builtin.map((f) => f.id)).toContain('pixel-5x7');
+  });
+
+  it('每个可选字体的字号应确实不同（不是同一字形的放大）', () => {
+    const sizes = new Set<string>();
+    for (const meta of PACKED_PIXEL_FONTS) {
+      const raw = readFileSync(path.resolve(__dirname, `../../public/fonts/${meta.id}.bin`));
+      const font = decodePackedFont(
+        raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength),
+        meta,
+      );
+      sizes.add(`${font.glyphWidth}x${font.glyphHeight}`);
+    }
+    // 8x8 / 10x10 / 12x12 / 12x16 / 16x16 —— 至少 4 种不同的字面规格
+    expect(sizes.size).toBeGreaterThanOrEqual(4);
   });
 
   it('open=false 时不应渲染任何内容', () => {
