@@ -56,7 +56,6 @@ Thumbs.db
 
 AGENTS.md
 git链接.txt
-打赏收款码/打赏告知.txt
 
 # 生成中文字体数据时的 BDF 临时缓存（产物 public/fonts/*.bin 需要提交）
 frontend/.font-cache/

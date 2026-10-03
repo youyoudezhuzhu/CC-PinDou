@@ -468,26 +468,13 @@ export default function EntryPage() {
 
           <div className="flex items-center gap-5">
             <a
-              href="https://github.com/ccooooool/CC-PinDou"
+              href="https://github.com/youyoudezhuzhu/CC-PinDou"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--nook-brown)] transition-colors duration-300 opacity-60 hover:opacity-100"
             >
               <Github className="w-3.5 h-3.5" />
               <span className="font-semibold">GitHub</span>
-            </a>
-            <a
-              href="https://gitee.com/ccoooool/CC-PinDou"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--nook-brown)] transition-colors duration-300 opacity-60 hover:opacity-100"
-            >
-              <img
-                src="/logo_gitee_g_red.svg"
-                alt="Gitee"
-                className="w-3.5 h-3.5 shrink-0"
-              />
-              <span className="font-semibold">Gitee</span>
             </a>
           </div>
         </div>
