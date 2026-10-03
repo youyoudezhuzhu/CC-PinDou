@@ -1,6 +1,6 @@
 # CC-PinDou 拼豆图案生成器
 
-> ## 🎮 在线演示：**https://youyoudezhuzhu.github.io/CC-PinDou/**
+> ## 🎮 在线演示：**https://pindou.yiling.win/**
 >
 > 纯静态部署，无需后端即可使用绘图模式与像素文字工具。
 
@@ -78,11 +78,28 @@
 cd frontend
 npm install
 npm run build:fonts        # 可选：重新生成点阵字体数据（需联网下载 BDF）
-GH_TOKEN=xxx ./scripts/deploy-pages.sh   # 发布到 GitHub Pages
+
+# 部署到子路径 https://<user>.github.io/CC-PinDou/
+GH_TOKEN=xxx ./scripts/deploy-pages.sh --base /CC-PinDou/
+
+# 部署到自定义域名 https://pindou.yiling.win/（base 自动改为 /，并写入 CNAME）
+GH_TOKEN=xxx ./scripts/deploy-pages.sh --cname pindou.yiling.win
 ```
 
 `vite.config.ts` 的 `base` 由 `VITE_BASE` 注入，`BrowserRouter` 使用相同的 basename，
 并自动生成 `404.html`（SPA 回退）与 `.nojekyll`。
+
+> ⚠️ 绑定自定义域名后站点会从「子路径」变成「域名根目录」，
+> `base` 必须由 `/CC-PinDou/` 改为 `/`，否则所有资源仍指向子路径而 404。
+> 传 `--cname` 会自动处理，并写好 GitHub Pages 需要的 `CNAME` 文件。
+
+自定义域名 DNS 记录（在 Cloudflare 等 DNS 服务商添加）：
+
+| 类型 | 名称 | 目标 | 代理 |
+|------|------|------|------|
+| CNAME | `pindou` | `youyoudezhuzhu.github.io` | **DNS only（灰云）** |
+
+> 开橙云代理会让 GitHub 的 Let's Encrypt 校验失败，无法自动签发 HTTPS 证书。
 
 ---
 
