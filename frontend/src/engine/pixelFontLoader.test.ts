@@ -88,14 +88,17 @@ describe('pixelFontLoader / CPXF 解码', () => {
     expect(glyph.rows[5]).toBe('100000000001');
   });
 
-  it('半宽字形（西文）应只保留步进宽度内的列', () => {
+  it('半宽字形（西文）应保留完整字身框宽度，并单独记录步进宽度', () => {
+    // 不能按 advance 截断：字身框左侧可能有为负 xOffset 字形预留的补偿列，
+    // 截断会裁掉笔画。宽度取整格，横向排版靠 advance 控制。
     const grid = Array.from({ length: 12 }, () => '111111' + '000000');
     const buffer = buildPackedFont([{ codepoint: 0x41, advance: 6, grid }]);
     const font = decodePackedFont(buffer, CJK_META);
     const glyph = font.glyphs['A'];
-    expect(glyph.width).toBe(6);
     expect(glyph.advance).toBe(6);
-    expect(glyph.rows[0]).toBe('111111');
+    expect(glyph.width).toBe(12);
+    expect(glyph.rows[0]).toBe('111111000000');
+    expect(glyph.rows[0].length).toBe(font.glyphWidth);
   });
 
   it('magic 不正确时应报错', () => {
@@ -156,15 +159,18 @@ describe('pixelFontLoader / 按需加载', () => {
       );
       expect(font.id).toBe(meta.id);
 
-      // 常用字必须有
-      for (const char of ['拼', '豆', '图', '纸', 'A', '1']) {
+      // 按覆盖范围校验必含字形
+      const required = meta.coverage === 'latin'
+        ? ['A', 'a', '1', '!', '?']
+        : ['拼', '豆', '图', '纸', 'A', '1'];
+      for (const char of required) {
         expect(font.glyphs[char], `${meta.id} 缺少字形 ${char}`).toBeDefined();
       }
       // 汉字笔迹必须是有设计的点阵，而不是空白或糊成一团
-      const dou = font.glyphs['豆'];
-      const ink = dou.rows.join('').split('1').length - 1;
-      expect(ink, `${meta.id} 的「豆」笔迹过少`).toBeGreaterThan(10);
-      expect(ink, `${meta.id} 的「豆」笔迹异常`).toBeLessThan(font.glyphWidth * font.glyphHeight);
+      const sample = meta.coverage === 'latin' ? 'A' : '豆';
+      const ink = font.glyphs[sample].rows.join('').split('1').length - 1;
+      expect(ink, `${meta.id} 的「${sample}」笔迹过少`).toBeGreaterThan(5);
+      expect(ink, `${meta.id} 的「${sample}」笔迹异常`).toBeLessThan(font.glyphWidth * font.glyphHeight);
     }
   });
 
@@ -328,6 +334,58 @@ describe('pixelFontLoader / 历史 id 兼容', () => {
       expect(getPixelFont('pixel-12-zh-hans').id).toBe('pixel-12-fusion-mono');
     } finally {
       globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+describe('pixelFontLoader / 尺寸阶梯（9~20px）', () => {
+  it('每个请求的尺寸都应有对应的字体', () => {
+    const requested = [9, 10, 12, 14, 16, 18, 20];
+    // 从数据文件读取真实全角步进，判断覆盖了哪些像素尺寸
+    const sizes = new Set<number>();
+    for (const meta of PACKED_PIXEL_FONTS) {
+      const raw = readFileSync(path.resolve(__dirname, `../../public/fonts/${meta.id}.bin`));
+      const font = decodePackedFont(
+        raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength),
+        meta,
+      );
+      // 「豆」的步进即该字体的真实像素尺寸；西文字体没有汉字，用字身框高度近似
+      const dou = font.glyphs['豆'];
+      sizes.add(dou ? (dou.advance ?? font.glyphWidth) : font.glyphHeight);
+    }
+    for (const size of requested) {
+      expect(sizes.has(size), `缺少 ${size}px 字体（现有: ${[...sizes].sort((a, b) => a - b).join(',')}）`).toBe(true);
+    }
+  });
+
+  it('9/20px 只覆盖西文，中文尺寸必须有汉字字形', () => {
+    const load = (id: string) => {
+      const meta = getPackedFontMeta(id)!;
+      const raw = readFileSync(path.resolve(__dirname, `../../public/fonts/${meta.id}.bin`));
+      return { meta, font: decodePackedFont(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength), meta) };
+    };
+    for (const id of ['pixel-9-x11', 'pixel-20-x11', 'pixel-14-x11']) {
+      const { meta, font } = load(id);
+      expect(meta.coverage).toBe('latin');
+      expect(font.glyphs['拼']).toBeUndefined();
+      expect(font.glyphs['A']).toBeDefined();
+      expect(font.glyphs['1']).toBeDefined();
+    }
+    for (const id of ['pixel-8-fusion-mono', 'pixel-10-fusion-mono', 'pixel-12-wqy', 'pixel-14-wqy', 'pixel-16-unifont', 'pixel-18-x11']) {
+      const { meta, font } = load(id);
+      expect(meta.coverage).toBe('cjk');
+      for (const ch of ['拼', '豆', '中', '国']) {
+        expect(font.glyphs[ch], `${id} 缺少「${ch}」`).toBeDefined();
+      }
+    }
+  });
+
+  it('文泉驿各字号的宋体字形必须有实际笔迹（不是空白或糊掉）', () => {
+    for (const meta of PACKED_PIXEL_FONTS.filter((m) => m.id.includes('-wqy'))) {
+      const raw = readFileSync(path.resolve(__dirname, `../../public/fonts/${meta.id}.bin`));
+      const font = decodePackedFont(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength), meta);
+      const ink = font.glyphs['豆'].rows.join('').split('1').length - 1;
+      expect(ink, `${meta.id} 的「豆」笔迹过少`).toBeGreaterThan(10);
     }
   });
 });

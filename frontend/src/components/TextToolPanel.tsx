@@ -67,7 +67,9 @@ export function TextToolPanel({ open, onClose }: TextToolPanelProps) {
 
   // 跟随当前拼豆颜色
   useEffect(() => {
+    // 透明色不能作为文字颜色，跳过
     if (!open || !followCurrentColor || !selectedColor) return;
+    if (selectedColor.hex === 'transparent') return;
     if (object && object.color !== selectedColor.hex) {
       updateText({ color: selectedColor.hex, codes: { ...selectedColor.codes } });
     }
@@ -80,10 +82,12 @@ export function TextToolPanel({ open, onClose }: TextToolPanelProps) {
     const builtin = listPixelFonts()
       .filter((font) => !getPackedFontMeta(font.id))
       .map((font) => ({ key: font.id, label: `${font.name}（内置）` }));
-    const packed = PACKED_PIXEL_FONTS.map((meta) => ({
-      key: meta.id,
-      label: loadedFonts.includes(meta.id) ? meta.name : `${meta.name} · 首次加载`,
-    }));
+    const packed = PACKED_PIXEL_FONTS.map((meta) => {
+      // 明确标注字符覆盖范围：9/20px 是纯西文字体，避免用户输入中文后一脸问号
+      const coverage = meta.coverage === 'latin' ? '西文·数字' : '中文';
+      const suffix = loadedFonts.includes(meta.id) ? '' : ' · 首次加载';
+      return { key: meta.id, label: `${meta.name}［${coverage}］${suffix}` };
+    });
     return [...builtin, ...packed];
   }, [loadedFonts]);
 

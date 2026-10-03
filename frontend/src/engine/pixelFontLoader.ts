@@ -25,6 +25,8 @@ export interface PackedFontMeta {
   group: string;
   /** 一句话特点说明 */
   desc: string;
+  /** 字符覆盖范围：cjk=含中文，latin=仅西文/数字/符号 */
+  coverage: 'cjk' | 'latin';
   /** 数据文件路径（相对 BASE_URL） */
   url: string;
   /** 字距（等宽字体步进已含字距，通常为 0） */
@@ -36,6 +38,7 @@ export interface PackedFontMeta {
 
 /** 可用的打包字体清单（与 scripts/pixel-font-manifest.mjs 保持一致） */
 export const PACKED_PIXEL_FONTS: PackedFontMeta[] = [
+  // ── 中文 · 黑体风格（OFL-1.1）──
   {
     id: 'pixel-8-fusion-mono',
     name: '缝合像素 8px 等宽',
@@ -44,6 +47,7 @@ export const PACKED_PIXEL_FONTS: PackedFontMeta[] = [
     url: 'fonts/pixel-8-fusion-mono.bin',
     letterSpacing: 0,
     lineSpacing: 1,
+    coverage: 'cjk',
     license: 'Fusion Pixel Font (OFL-1.1) © TakWolf',
   },
   {
@@ -54,6 +58,7 @@ export const PACKED_PIXEL_FONTS: PackedFontMeta[] = [
     url: 'fonts/pixel-10-fusion-mono.bin',
     letterSpacing: 0,
     lineSpacing: 1,
+    coverage: 'cjk',
     license: 'Fusion Pixel Font (OFL-1.1) © TakWolf',
   },
   {
@@ -64,6 +69,7 @@ export const PACKED_PIXEL_FONTS: PackedFontMeta[] = [
     url: 'fonts/pixel-12-fusion-mono.bin',
     letterSpacing: 0,
     lineSpacing: 1,
+    coverage: 'cjk',
     license: 'Fusion Pixel Font (OFL-1.1) © TakWolf',
   },
   {
@@ -74,17 +80,122 @@ export const PACKED_PIXEL_FONTS: PackedFontMeta[] = [
     url: 'fonts/pixel-12-fusion-prop.bin',
     letterSpacing: 0,
     lineSpacing: 1,
+    coverage: 'cjk',
     license: 'Fusion Pixel Font (OFL-1.1) © TakWolf',
   },
+  // ── 中文 · 宋体风格（文泉驿，GPL-2.0，数据文件单独授权）──
+  {
+    id: 'pixel-12-wqy',
+    name: '文泉驿点阵宋体 12px',
+    group: '12 像素',
+    desc: '宋体风格，横细竖粗带衬线，与黑体观感明显不同',
+    url: 'fonts/pixel-12-wqy.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    coverage: 'cjk',
+    license: 'WenQuanYi Bitmap Song (GPL-2.0) © WenQuanYi Board',
+  },
+  {
+    id: 'pixel-13-wqy',
+    name: '文泉驿点阵宋体 13px',
+    group: '13 像素',
+    desc: '宋体风格，13px 专门设计',
+    url: 'fonts/pixel-13-wqy.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    coverage: 'cjk',
+    license: 'WenQuanYi Bitmap Song (GPL-2.0) © WenQuanYi Board',
+  },
+  {
+    id: 'pixel-14-wqy',
+    name: '文泉驿点阵宋体 14px',
+    group: '14 像素',
+    desc: '宋体风格，14px 中文笔画更宽松',
+    url: 'fonts/pixel-14-wqy.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    coverage: 'cjk',
+    license: 'WenQuanYi Bitmap Song (GPL-2.0) © WenQuanYi Board',
+  },
+  {
+    id: 'pixel-15-wqy',
+    name: '文泉驿点阵宋体 15px',
+    group: '15 像素',
+    desc: '宋体风格，笔画更舒展',
+    url: 'fonts/pixel-15-wqy.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    coverage: 'cjk',
+    license: 'WenQuanYi Bitmap Song (GPL-2.0) © WenQuanYi Board',
+  },
+  {
+    id: 'pixel-16-wqy',
+    name: '文泉驿点阵宋体 16px',
+    group: '16 像素',
+    desc: '宋体风格，中文细节最完整',
+    url: 'fonts/pixel-16-wqy.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    coverage: 'cjk',
+    license: 'WenQuanYi Bitmap Song (GPL-2.0) © WenQuanYi Board',
+  },
+  // ── 中文 · 16px 等宽（OFL-1.1）──
   {
     id: 'pixel-16-unifont',
     name: 'Unifont 16px 等宽',
     group: '16 像素',
-    desc: '字面最大，复杂汉字笔画最清晰，占豆也最多',
+    desc: '字面大，复杂汉字笔画最清晰，占豆也最多',
     url: 'fonts/pixel-16-unifont.bin',
     letterSpacing: 0,
     lineSpacing: 1,
+    coverage: 'cjk',
     license: 'GNU Unifont (OFL-1.1) © Roman Czyborra, Paul Hardy',
+  },
+  // ── 中文 · 18px（公有领域）──
+  {
+    id: 'pixel-18-x11',
+    name: 'X11 18px 等宽',
+    group: '18 像素',
+    desc: '18px 中文，公有领域位图，字形为简体写法',
+    url: 'fonts/pixel-18-x11.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    coverage: 'cjk',
+    license: 'X11 misc-fixed (Public domain)',
+  },
+  // ── 西文 / 数字 / 符号（公有领域，不含中文）──
+  {
+    id: 'pixel-9-x11',
+    name: 'X11 9px 等宽',
+    group: '9 像素',
+    desc: '西文 / 数字 / 符号（不含中文）',
+    url: 'fonts/pixel-9-x11.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    coverage: 'latin',
+    license: 'X11 misc-fixed (Public domain)',
+  },
+  {
+    id: 'pixel-14-x11',
+    name: 'X11 14px 等宽',
+    group: '14 像素',
+    desc: '西文 / 数字 / 符号（不含中文）',
+    url: 'fonts/pixel-14-x11.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    coverage: 'latin',
+    license: 'X11 misc-fixed (Public domain)',
+  },
+  {
+    id: 'pixel-20-x11',
+    name: 'X11 20px 等宽',
+    group: '20 像素',
+    desc: '西文 / 数字 / 符号（不含中文）',
+    url: 'fonts/pixel-20-x11.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    coverage: 'latin',
+    license: 'X11 misc-fixed (Public domain)',
   },
 ];
 
@@ -117,8 +228,10 @@ function decodeGlyph(
   cellH: number,
   advance: number,
 ): PixelGlyph {
-  // 只保留步进宽度内的列：等宽字体里字形不会超出自己的步进
-  const width = Math.min(advance, cellW);
+  // 必须使用**完整字身框宽度**，不能按 advance 截断：
+  // 字身框左侧可能包含为负 xOffset 字形预留的补偿列，
+  // 按 advance 截断会裁掉这类字形的右侧笔画（文泉驿多种字号都会踩到）。
+  const width = cellW;
   const rows: string[] = [];
   for (let y = 0; y < cellH; y++) {
     let row = '';
