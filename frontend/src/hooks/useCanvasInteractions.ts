@@ -301,12 +301,12 @@ export function useCanvasInteractions(
 
       if (!isDrawMode) return;
 
-      // 画笔类工具禁止无颜色/透明绘制（透明操作只属于橡皮擦）
+      // 画笔类工具至少要选一个颜色（透明也算合法颜色，可用来擦除/覆盖）
       if (
         (drawTool === 'pen' || drawTool === 'line' || drawTool === 'rect' || drawTool === 'circle' || drawTool === 'fill' || drawTool === 'replace') &&
-        (!selectedColorRef.current || selectedColorRef.current.hex === 'transparent')
+        !selectedColorRef.current
       ) {
-        toast.error('请先选择一个颜色，透明绘制请使用橡皮擦');
+        toast.error('请先选择颜色（需要擦除可选中「透明」或使用橡皮擦）');
         e.preventDefault();
         return;
       }

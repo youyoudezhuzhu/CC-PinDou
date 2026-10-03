@@ -120,9 +120,14 @@ export const useTextStore = create<TextState>((set, get) => ({
     const bounds = getBounds();
     if (!bounds) return null;
 
+    // 透明色不适合做文字颜色（落不下任何拼豆），退回黑色
+    const selected = useEditorStore.getState().selectedColor;
+    const usableColor = selected && selected.hex !== 'transparent' ? selected.hex : undefined;
+    const usableCodes = selected && selected.hex !== 'transparent' ? selected.codes : undefined;
+
     const base = createTextObject({
-      color: init?.color ?? useEditorStore.getState().selectedColor?.hex ?? '#000000',
-      codes: init?.codes ?? useEditorStore.getState().selectedColor?.codes ?? {},
+      color: init?.color ?? usableColor ?? '#000000',
+      codes: init?.codes ?? usableCodes ?? {},
       ...init,
     });
     const anchor = centerAnchor(base, bounds);

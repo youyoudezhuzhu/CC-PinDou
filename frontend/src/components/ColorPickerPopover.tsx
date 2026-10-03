@@ -172,6 +172,38 @@ export function ColorPickerPopover() {
             </Button>
           </div>
 
+          {/* 透明色：可直接用画笔 / 形状 / 填充 / 替换绘制透明，覆盖已有拼豆 */}
+          <div className="px-3 pt-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedColor({ hex: 'transparent', count: 0, codes: {} });
+                setOpen(false);
+              }}
+              className="w-full flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors hover:bg-[var(--bg-surface-alt)]"
+              style={
+                isTransparent
+                  ? { boxShadow: '0 0 0 2px var(--theme-draw)', background: 'var(--bg-surface-alt)' }
+                  : undefined
+              }
+            >
+              <div
+                className="w-7 h-7 rounded-[var(--radius-sm)] overflow-hidden shrink-0"
+                style={{
+                  border: '1px solid var(--nook-wood)',
+                  backgroundImage: 'repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%)',
+                  backgroundSize: '8px 8px',
+                }}
+              />
+              <div className="flex flex-col items-start leading-tight min-w-0">
+                <span className="text-xs font-bold text-[var(--text-primary)]">透明</span>
+                <span className="text-[10px] text-[var(--text-muted)] text-left">
+                  可绘制 / 填充 / 替换为透明，覆盖已有拼豆
+                </span>
+              </div>
+            </button>
+          </div>
+
           {/* 颜色网格 */}
           <div className="px-3 py-2.5 overflow-y-auto grid grid-cols-5 gap-1.5">
             {colors.map((color) => {
