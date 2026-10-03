@@ -25,6 +25,22 @@ function createEmptyGrid(size: number): GridCell[][] {
   return grid;
 }
 
+/** 批量写入格子的候选数据（文字工具等批量落笔场景使用） */
+export interface CellWrite {
+  x: number;
+  y: number;
+  color: string;
+  codes: Record<string, string>;
+}
+
+/** 判断两组色号是否一致（顺序无关） */
+export function sameCodes(a: Record<string, string>, b: Record<string, string>): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((key) => a[key] === b[key]);
+}
+
 export interface EditorState {
   // ========== 图层系统（新增）==========
   layers: PerlerLayer[];
@@ -83,6 +99,18 @@ export interface EditorState {
 
   // 空白网格
   createBlankGrid: (size: number) => void;
+
+  // ========== 批量落笔（文字工具等）==========
+  /** 批量写入格子并记录为一步 batch_paint；无实际变化时返回 null */
+  writeCellsAsHistory: (writes: CellWrite[], tool: string, placementId?: string) => HistoryAction | null;
+  /** 直接写回格子，不产生历史记录（用于文字对象的回滚重落笔） */
+  restoreCells: (cells: CellWrite[]) => void;
+  /**
+   * 用 next 替换掉历史栈顶中 placementId 相同的记录。
+   * 用于「文字对象」这类可反复编辑的活动对象，保证整段文字始终只占一步撤销。
+   * 仅当栈顶确实属于该 placementId 时才替换并返回 true，否则返回 false（调用方应转为脱钩）。
+   */
+  replaceTopPlacement: (placementId: string, next: HistoryAction) => boolean;
 
   // 工程导入/导出
   exportProject: () => object;
@@ -896,6 +924,103 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       transform: { x: 0, y: 0, scale: 1, rotation: 0 },
     };
     set({ layers: [layer], activeLayerId: id, gridData: grid, colorList: [], historyStack: [], redoStack: [], selectedCells: [] });
+  },
+
+  // ========== 批量落笔（文字工具等）==========
+  writeCellsAsHistory: (writes, tool, placementId) => {
+    const state = get();
+    const grid = state.gridData;
+    if (!grid || writes.length === 0) return null;
+
+    // 只在拼豆图层上落笔，图片图层不允许写入
+    const activeLayer = state.layers.find((l) => l.id === state.activeLayerId);
+    if (activeLayer && activeLayer.type !== 'bead') return null;
+
+    const rows = grid.length;
+    const cols = grid[0]?.length ?? 0;
+    const layerId = state.activeLayerId || 'default';
+    const positions: Array<{
+      x: number;
+      y: number;
+      oldColor: string;
+      oldCodes: Record<string, string>;
+      newColor: string;
+      newCodes: Record<string, string>;
+    }> = [];
+
+    for (const write of writes) {
+      // 双保险：绝不写入越界坐标
+      if (write.y < 0 || write.y >= rows || write.x < 0 || write.x >= cols) continue;
+      const cell = grid[write.y][write.x];
+      // 颜色与色号都没变化时跳过，避免产生空操作历史
+      if (cell.color === write.color && sameCodes(cell.codes, write.codes)) continue;
+      positions.push({
+        x: write.x,
+        y: write.y,
+        oldColor: cell.color,
+        oldCodes: { ...cell.codes },
+        newColor: write.color,
+        newCodes: { ...write.codes },
+      });
+      cell.color = write.color;
+      cell.codes = { ...write.codes };
+    }
+
+    if (positions.length === 0) return null;
+
+    const action: HistoryAction = {
+      type: 'batch_paint',
+      layerId,
+      tool,
+      ...(placementId ? { placementId } : {}),
+      positions,
+    };
+
+    // 活动对象（如文字）反复编辑时替换掉自己的旧记录，保持「一个对象 = 一步撤销」；
+    // 首次落笔时栈顶没有同标识记录，走正常 push。
+    const stack = get().historyStack;
+    const top = stack[stack.length - 1];
+    if (placementId && top && top.type === 'batch_paint' && top.placementId === placementId) {
+      get().replaceTopPlacement(placementId, action);
+    } else {
+      // 复用 pushHistory：它会重算 colorList 并同步回图层
+      get().pushHistory(action);
+    }
+    return action;
+  },
+
+  restoreCells: (cells) => {
+    const state = get();
+    const grid = state.gridData;
+    if (!grid) return;
+    const rows = grid.length;
+    const cols = grid[0]?.length ?? 0;
+    for (const cell of cells) {
+      if (cell.y < 0 || cell.y >= rows || cell.x < 0 || cell.x >= cols) continue;
+      grid[cell.y][cell.x].color = cell.color;
+      grid[cell.y][cell.x].codes = { ...cell.codes };
+    }
+  },
+
+  replaceTopPlacement: (placementId, next) => {
+    const stack = get().historyStack;
+    const top = stack[stack.length - 1];
+    if (!top || top.type !== 'batch_paint' || top.placementId !== placementId) return false;
+
+    set(produce((draft: EditorState) => {
+      draft.historyStack[draft.historyStack.length - 1] = next;
+      draft.redoStack = [];
+
+      if (draft.gridData) {
+        const newColorList = recalculateColorList(draft.gridData);
+        draft.colorList = newColorList;
+        const layer = draft.layers.find(
+          (l) => l.id === next.layerId && l.type === 'bead',
+        ) as BeadLayer | undefined;
+        if (layer) layer.colorList = newColorList;
+      }
+    }));
+    return true;
   },
 
   exportProject: () => {
