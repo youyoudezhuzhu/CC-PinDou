@@ -20,6 +20,9 @@ function getPackageName(id: string): string | undefined {
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // 部署到 GitHub Pages 子路径（如 /CC-PinDou/）时通过 VITE_BASE 注入；
+  // 本地开发与根路径部署保持 '/'，行为完全不变。
+  base: process.env.VITE_BASE || '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
