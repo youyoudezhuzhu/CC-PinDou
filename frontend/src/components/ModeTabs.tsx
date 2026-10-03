@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Image, ClipboardPenLine } from 'lucide-react';
+import { Image, ClipboardPenLine, House } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getModeTheme } from '../utils/theme';
 import { getPixelIcon, getPixelIconScale } from '../utils/pixelIcon';
@@ -23,19 +23,12 @@ export function ModeTabs({ onModeChange }: ModeTabsProps) {
   const pixelIconClass = getPixelIcon();
   const pixelScale = getPixelIconScale(pixelIconClass, 16);
 
-  const handleGoHome = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleGoHome = (e: React.MouseEvent<HTMLButtonElement>) => {
     triggerViewTransition(
       () => navigate('/'),
       {
         color: theme.main,
-        icon: (
-          <img
-            src="/logo.svg"
-            alt=""
-            className="w-12 h-12"
-            style={{ filter: 'brightness(0) invert(1)' }}
-          />
-        ),
+        icon: <House className="w-12 h-12" style={{ color: '#fff' }} />,
         originEl: e.currentTarget,
       }
     );
@@ -43,21 +36,16 @@ export function ModeTabs({ onModeChange }: ModeTabsProps) {
 
   return (
     <div className="flex items-center bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] shrink-0 h-14 relative">
-      {/* 左侧：项目名称 */}
-      <div
-        className="flex items-center gap-2 absolute left-4 cursor-pointer transition-all duration-300 hover:opacity-80"
+      {/* 左侧：返回主页 */}
+      <button
+        type="button"
         onClick={handleGoHome}
+        aria-label="返回主页"
+        title="返回主页"
+        className="absolute left-4 inline-flex items-center justify-center w-9 h-9 rounded-full text-[var(--text-muted)] hover:text-[var(--nook-brown)] hover:bg-[var(--bg-surface-alt)] transition-all duration-300 ease-nook focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ac-green)]"
       >
-        <img
-          src="/logo.svg"
-          alt=""
-          className="w-5 h-5"
-        />
-        <span className="font-bold text-[var(--text-heading)] text-base tracking-tight">
-          CC-PinDou
-        </span>
-
-      </div>
+        <House className="w-[18px] h-[18px]" />
+      </button>
 
       {/* 中间：模式导航 */}
       <div className="flex items-center justify-center gap-1 mx-auto">
