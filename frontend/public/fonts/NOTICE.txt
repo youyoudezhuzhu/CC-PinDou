@@ -1,14 +1,54 @@
-本目录下的 pixel-12-zh-hans.bin 由脚本 scripts/build-cjk-font.mjs 生成。
+本目录下的字体数据由 frontend/scripts/build-pixel-fonts.mjs 生成。
 
-字形来源：Fusion Pixel Font（缝合像素字体）12px 等宽 zh_Hans
+这些字体都是**逐像素手工绘制的点阵（bitmap）字体**，通过 BDF 转换为紧凑二进制，
+不是把轮廓字体缩小后栅格化的产物，也没有使用加粗或整数倍放大来伪造字形。
+因此在 8~16px 下汉字笔画依然清晰可辨。
+
+──────────────────────────────────────────────
+字体清单
+──────────────────────────────────────────────
+  pixel-8-fusion-mono.bin
+    名称：缝合像素 8px 等宽
+    字面：8×8px，字形 4007 个，子集 gb2312-1
+    来源：Fusion Pixel Font（缝合像素字体）
+
+  pixel-10-fusion-mono.bin
+    名称：缝合像素 10px 等宽
+    字面：10×10px，字形 4021 个，子集 gb2312-1
+    来源：Fusion Pixel Font（缝合像素字体）
+
+  pixel-12-fusion-mono.bin
+    名称：缝合像素 12px 等宽
+    字面：12×12px，字形 4021 个，子集 gb2312-1
+    来源：Fusion Pixel Font（缝合像素字体）
+
+  pixel-12-fusion-prop.bin
+    名称：缝合像素 12px 比例
+    字面：12×16px，字形 4021 个，子集 gb2312-1
+    来源：Fusion Pixel Font（缝合像素字体）
+
+  pixel-16-unifont.bin
+    名称：Unifont 16px 等宽
+    字面：16×16px，字形 4021 个，子集 gb2312-1
+    来源：GNU Unifont
+
+──────────────────────────────────────────────
+授权
+──────────────────────────────────────────────
+Fusion Pixel Font（缝合像素字体）
   https://github.com/TakWolf/fusion-pixel-font
   Copyright (c) 2022, TakWolf (https://takwolf.com)
-  字形部分以 SIL Open Font License 1.1 授权（见 LICENSE-OFL）。
-  本数据是该项目字形的子集化二进制转换，同样遵循 OFL-1.1。
+  授权：SIL Open Font License 1.1
 
-该字体是真正的点阵（bitmap）字体：每个字形由设计师逐像素手工绘制，
-而非把轮廓字体缩小后栅格化，因此在 12px 下汉字笔画依然清晰可辨。
-
-生成参数：subset=gb2312-1，字形 4020 个，12×12px。
+GNU Unifont
+  https://unifoundry.com/unifont/
+  Copyright (C) 1998-2025 Roman Czyborra, Paul Hardy, et al.
+  授权：SIL Open Font License 1.1（同时提供 GPLv2+ 与字体嵌入例外，此处按 OFL-1.1 使用）
 
 SIL Open Font License 1.1 全文见 https://openfontlicense.org
+
+已排除的字体：
+  - Zpix（最像素）：需付费商业授权，且明确禁止修改/转换/拆分。
+  - Ark Pixel（方舟像素）10px：GB2312 一级常用字缺字约 84%，不适合中文。
+  - Cubic 11：仅提供轮廓格式（ttf/woff2），无点阵 BDF，
+    栅格化轮廓会糊掉笔画，不符合本项目「必须使用真实点阵」的要求。

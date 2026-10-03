@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build:cjk-font": "node scripts/build-cjk-font.mjs"
+    "build:fonts": "node scripts/build-pixel-fonts.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
