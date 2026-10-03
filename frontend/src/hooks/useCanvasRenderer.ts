@@ -3,6 +3,7 @@ import { useEditorStore } from '../store/useEditorStore';
 import { useConfigStore } from '../store/useConfigStore';
 import { useUIStore } from '../store/useUIStore';
 import { useTextStore } from '../store/useTextStore';
+import { useHighlightStore } from '../store/useHighlightStore';
 import { textObjectSize, textObjectToCells } from '../engine/pixelText';
 import type { GridCell, PerlerLayer, TextObject } from '../types/perler';
 
@@ -21,6 +22,10 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
   const drawTool = useUIStore((s) => s.drawTool);
   const textObject = useTextStore((s) => s.object);
   const textPlacement = useTextStore((s) => s.placement);
+  const highlightEnabled = useHighlightStore((s) => s.enabled);
+  const highlightHexes = useHighlightStore((s) => s.hexes);
+  const highlightDim = useHighlightStore((s) => s.dimStrength);
+  const highlightOutline = useHighlightStore((s) => s.outline);
 
   const { beadSize, margin, zoomLevel, showCode, circleMode, showMarkLines, markInterval } = canvasConfig;
 
@@ -342,6 +347,29 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
       }
     }
 
+    // ========== 高亮配豆模式 ==========
+    // 在网格线/坐标标签之前叠加，保证网格线始终可见
+    if (highlightEnabled && highlightHexes.length > 0) {
+      drawHighlightOverlay(ctx, {
+        gridData: sizeSource,
+        rows,
+        cols,
+        beadSize,
+        margin,
+        hexes: highlightHexes,
+        dimStrength: highlightDim,
+        outline: highlightOutline,
+        circleMode,
+        showCode,
+        brand,
+        getBrightness,
+        getCircleBeadCanvas,
+        patternA,
+        patternB,
+        hasImageBelow: imageLayers.length > 0 && mode === 'draw',
+      });
+    }
+
     // 网格线
     drawGridLines(ctx, rows, cols, beadSize, margin, showMarkLines, markInterval);
 
@@ -558,6 +586,12 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
     drawTool,
     textObject,
     textPlacement,
+    highlightEnabled,
+    highlightHexes,
+    highlightDim,
+    highlightOutline,
+    getBrightness,
+    getCircleBeadCanvas,
     canvasRef,
     getTransparentPatterns,
     getBrightness,
@@ -868,6 +902,112 @@ function drawSymmetryLines(
     }
   }
 
+  ctx.restore();
+}
+
+/**
+ * 高亮配豆叠加层
+ *
+ * 做法：先把非高亮区域整体压暗（半透明白色蒙版），再把命中的格子整块重画一遍，
+ * 这样高亮格保留原本的圆形/方形样式、色号文字与亮度对比，不会出现两套画法。
+ * 最后可选地只描「区域外轮廓」——即高亮格中至少有一个非高亮邻居的边，
+ * 这样看到的是这一色的整体形状，而不是密密麻麻的逐格方框。
+ */
+export function drawHighlightOverlay(
+  ctx: CanvasRenderingContext2D,
+  options: {
+    gridData: GridCell[][];
+    rows: number;
+    cols: number;
+    beadSize: number;
+    margin: number;
+    hexes: string[];
+    dimStrength: number;
+    outline: boolean;
+    circleMode: boolean;
+    showCode: boolean;
+    brand: string;
+    getBrightness: (hex: string) => number;
+    getCircleBeadCanvas: (size: number, color: string) => HTMLCanvasElement;
+    patternA?: CanvasPattern | null;
+    patternB?: CanvasPattern | null;
+    hasImageBelow?: boolean;
+  },
+) {
+  const {
+    gridData, rows, cols, beadSize, margin, hexes,
+    dimStrength, outline, circleMode, showCode, brand, patternA, patternB,
+  } = options;
+
+  const wanted = new Set(hexes);
+  const isHit = (x: number, y: number) => {
+    const cell = gridData[y]?.[x];
+    return !!cell && cell.color !== 'transparent' && wanted.has(cell.color);
+  };
+
+  // 1) 压暗非高亮区域
+  const alpha = Math.max(0, Math.min(95, dimStrength)) / 100;
+  if (alpha > 0) {
+    ctx.save();
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fillRect(margin, margin, cols * beadSize, rows * beadSize);
+    ctx.restore();
+  }
+
+  // 2) 只保留命中格，复用主绘制逻辑整块重画（保留圆豆样式与色号文字）
+  const hitGrid: GridCell[][] = [];
+  for (let y = 0; y < rows; y++) {
+    const row: GridCell[] = [];
+    for (let x = 0; x < cols; x++) {
+      const cell = gridData[y]?.[x];
+      row.push(
+        cell && isHit(x, y)
+          ? cell
+          : { x, y, color: 'transparent', codes: {} },
+      );
+    }
+    hitGrid.push(row);
+  }
+
+  // 注意：这里跳过棋盘格底纹，避免把刚压暗的背景又盖回不透明图案
+  drawNormalBeads({
+    ctx,
+    gridData: hitGrid,
+    beadSize,
+    margin,
+    circleMode,
+    showCode,
+    brand,
+    getBrightness: options.getBrightness,
+    getCircleBeadCanvas: options.getCircleBeadCanvas,
+    patternA,
+    patternB,
+    skipTransparentPattern: true,
+  });
+
+  // 3) 可选：只描高亮区域的外轮廓
+  if (!outline) return;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 94, 87, 0.95)';
+  ctx.lineWidth = Math.max(2, Math.round(beadSize / 4));
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (!isHit(x, y)) continue;
+      const px = margin + x * beadSize;
+      const py = margin + y * beadSize;
+      // 上
+      if (!isHit(x, y - 1)) { ctx.moveTo(px, py); ctx.lineTo(px + beadSize, py); }
+      // 下
+      if (!isHit(x, y + 1)) { ctx.moveTo(px, py + beadSize); ctx.lineTo(px + beadSize, py + beadSize); }
+      // 左
+      if (!isHit(x - 1, y)) { ctx.moveTo(px, py); ctx.lineTo(px, py + beadSize); }
+      // 右
+      if (!isHit(x + 1, y)) { ctx.moveTo(px + beadSize, py); ctx.lineTo(px + beadSize, py + beadSize); }
+    }
+  }
+  ctx.stroke();
   ctx.restore();
 }
 
