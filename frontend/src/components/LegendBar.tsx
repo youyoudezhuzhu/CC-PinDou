@@ -3,6 +3,7 @@ import { useConfigStore } from '../store/useConfigStore';
 import { useUIStore } from '../store/useUIStore';
 import { Palette, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { HighlightToggleButton } from './HighlightToggleButton';
 
 export function LegendBar() {
   const { colorList, removeColorFromGrid } = useEditorStore();
@@ -31,6 +32,9 @@ export function LegendBar() {
           <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" />
         )}
       </span>
+
+      {/* 高亮配豆入口：放在图例栏里，和颜色统计在一起，普通/像素模式下常驻可见 */}
+      <HighlightToggleButton className="ml-1" />
 
       {!legendCollapsed && (
         <>

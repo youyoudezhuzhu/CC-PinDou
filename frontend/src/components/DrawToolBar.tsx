@@ -6,6 +6,7 @@ import { getModeTheme } from '../utils/theme';
 import { ColorPickerPopover } from './ColorPickerPopover';
 import { ToolPropertiesPopover } from './ToolPropertiesPopover';
 import { TextToolPanel } from './TextToolPanel';
+import { HighlightToggleButton } from './HighlightToggleButton';
 import { Modal } from './ui/modal';
 import { toast } from '@/components/ui/toast';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -285,6 +286,16 @@ export function DrawToolBar() {
       </Tooltip>
 
       <ColorPickerPopover />
+
+      {/* 高亮配豆入口（绘制模式下图例栏是隐藏的，所以放在工具栏里） */}
+      <Tooltip delayDuration={400}>
+        <TooltipTrigger asChild>
+          <HighlightToggleButton iconOnly />
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={8}>
+          高亮配豆
+        </TooltipContent>
+      </Tooltip>
 
       {/* 删除图层按钮 */}
       <div className="mt-auto" />

@@ -9,8 +9,11 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { BeadHighlightTrigger } from './BeadHighlightTrigger';
+import { HighlightToggleButton } from './HighlightToggleButton';
+import { LegendBar } from './LegendBar';
+import { DrawToolBar } from './DrawToolBar';
 import { BeadHighlightPanel } from './BeadHighlightPanel';
+import { TooltipProvider } from './ui/tooltip';
 import { useEditorStore } from '../store/useEditorStore';
 import { useHighlightStore } from '../store/useHighlightStore';
 import type { GridCell, ColorInfo } from '../types/perler';
@@ -52,26 +55,25 @@ function seed() {
   });
 }
 
-describe('BeadHighlightTrigger', () => {
+describe('HighlightToggleButton', () => {
   beforeEach(seed);
   afterEach(cleanup);
 
-  it('必须用 fixed 定位，不能被画布滚动容器推出视口', () => {
-    render(<BeadHighlightTrigger />);
+  it('入口不做浮动定位（避免被滚动容器推出视口或与侧栏重叠）', () => {
+    render(<HighlightToggleButton />);
     const btn = screen.getByRole('button', { name: '高亮配豆' });
-    // 关键回归点：absolute 放在 overflow-auto 容器里会跑到滚动内容底部
-    expect(btn.className).toContain('fixed');
+    expect(btn.className).not.toContain('fixed');
     expect(btn.className).not.toContain('absolute');
   });
 
   it('没有配色时不应渲染入口', () => {
     useEditorStore.setState({ colorList: [] });
-    const { container } = render(<BeadHighlightTrigger />);
+    const { container } = render(<HighlightToggleButton />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it('点击入口应打开面板', () => {
-    render(<BeadHighlightTrigger />);
+    render(<HighlightToggleButton />);
     expect(useHighlightStore.getState().panelOpen).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: '高亮配豆' }));
     expect(useHighlightStore.getState().panelOpen).toBe(true);
@@ -80,9 +82,23 @@ describe('BeadHighlightTrigger', () => {
   it('已选色号时应在入口显示色号数，已配完时显示完成数', () => {
     useHighlightStore.getState().setHexes([RED]);
     useHighlightStore.getState().setDoneHexes([RED]);
-    render(<BeadHighlightTrigger />);
+    render(<HighlightToggleButton />);
     expect(screen.getByText('1 色')).toBeInTheDocument();
-    expect(screen.getByText(/已配完 1/)).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  it('入口必须出现在图例栏里（普通/像素模式常驻可见）', () => {
+    render(<LegendBar />);
+    expect(screen.getByRole('button', { name: '高亮配豆' })).toBeInTheDocument();
+  });
+
+  it('入口必须出现在绘制工具栏里（绘制模式下图例栏是隐藏的）', () => {
+    render(
+      <TooltipProvider>
+        <DrawToolBar />
+      </TooltipProvider>,
+    );
+    expect(screen.getByRole('button', { name: '高亮配豆' })).toBeInTheDocument();
   });
 });
 

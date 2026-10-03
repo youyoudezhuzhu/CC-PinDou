@@ -16,7 +16,6 @@ import { BgRemovePanel } from './components/BgRemovePanel';
 
 import { LegendBar } from './components/LegendBar';
 import { BeadHighlightPanel } from './components/BeadHighlightPanel';
-import { BeadHighlightTrigger } from './components/BeadHighlightTrigger';
 import { FloatingZoom } from './components/FloatingZoom';
 import { EditPanel } from './components/EditPanel';
 import { PerlerEngine } from './engine/PerlerEngine';
@@ -389,8 +388,6 @@ export default function App() {
               <ModeBackground mode={mode} />
             </div>
             <CanvasEditor onImageSelect={handleImageSelect} />
-            {/* 高亮配豆入口（fixed 定位，不受画布滚动影响） */}
-            {gridData && gridData.length > 0 && <BeadHighlightTrigger />}
             {/* 绘制模式下缩放条放在画板区域内 */}
             {gridData && gridData.length > 0 && mode === 'draw' && (
               <FloatingZoom className="!absolute bottom-4 right-4 z-50" />
