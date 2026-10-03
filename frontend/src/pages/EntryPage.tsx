@@ -299,25 +299,20 @@ export default function EntryPage() {
 
       {/* ==================== 内容层 ==================== */}
       <div className="relative z-10 flex flex-col items-center w-full max-w-[720px] px-8 py-12">
-        {/* --- Logo 区域（更大、更聚焦） --- */}
+        {/* --- 标题区域 --- */}
         <div
           className={`flex flex-col items-center mb-10 transition-all duration-700 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
           }`}
         >
-          {/* 主 Logo */}
-          <img
-            src="/logo.svg"
-            alt="CC-PinDou Logo"
-            className={`w-[120px] h-[120px] sm:w-[140px] sm:h-[140px] mb-6 cursor-pointer select-none ${
+          {/* 标题
+              原先这里是一张 <img src="/logo.svg">，但它是根绝对路径，
+              部署在 /CC-PinDou/ 子路径下会解析到域名根目录而 404（裂图），故移除。
+              原「连点 7 下飘落叶」彩蛋的触发点移到标题上，功能保持不变。 */}
+          <h1
+            className={`text-[36px] sm:text-[44px] font-extrabold text-[var(--nook-brown)] tracking-tight leading-none mb-3 cursor-pointer select-none ${
               logoShake ? 'logo-shake' : ''
             }`}
-            style={{
-              animation: logoShake
-                ? 'none'
-                : 'logo-breathe 4s ease-in-out infinite',
-              filter: 'drop-shadow(0 12px 40px rgba(43,180,171,0.22))',
-            }}
             onClick={() => {
               setLogoShake(true);
               setTimeout(() => setLogoShake(false), 500);
@@ -333,10 +328,7 @@ export default function EntryPage() {
                 }, 9000);
               }
             }}
-          />
-
-          {/* 标题 */}
-          <h1 className="text-[36px] sm:text-[44px] font-extrabold text-[var(--nook-brown)] tracking-tight leading-none mb-3">
+          >
             CC-PinDou
           </h1>
           <p className="text-base sm:text-lg text-[var(--text-secondary)] font-semibold">
