@@ -27,3 +27,13 @@ if (typeof ImageData === 'undefined') {
     }
   };
 }
+
+// Polyfill ResizeObserver for jsdom
+// Radix UI 的 Slider / Select 等组件依赖它，jsdom 未实现
+if (typeof (globalThis as any).ResizeObserver === 'undefined') {
+  (globalThis as any).ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

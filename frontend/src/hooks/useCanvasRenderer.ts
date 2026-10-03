@@ -26,6 +26,8 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
   const highlightHexes = useHighlightStore((s) => s.hexes);
   const highlightDim = useHighlightStore((s) => s.dimStrength);
   const highlightOutline = useHighlightStore((s) => s.outline);
+  const highlightDoneHexes = useHighlightStore((s) => s.doneHexes);
+  const highlightHideDone = useHighlightStore((s) => s.hideDone);
 
   const { beadSize, margin, zoomLevel, showCode, circleMode, showMarkLines, markInterval } = canvasConfig;
 
@@ -349,14 +351,18 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
 
     // ========== 高亮配豆模式 ==========
     // 在网格线/坐标标签之前叠加，保证网格线始终可见
-    if (highlightEnabled && highlightHexes.length > 0) {
+    const highlightActive = highlightEnabled && highlightHexes.length > 0;
+    const hideDoneActive = highlightHideDone && highlightDoneHexes.length > 0;
+    if (highlightActive || hideDoneActive) {
       drawHighlightOverlay(ctx, {
         gridData: sizeSource,
         rows,
         cols,
         beadSize,
         margin,
-        hexes: highlightHexes,
+        hexes: highlightActive ? highlightHexes : [],
+        doneHexes: highlightDoneHexes,
+        hideDone: highlightHideDone,
         dimStrength: highlightDim,
         outline: highlightOutline,
         circleMode,
@@ -590,6 +596,8 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
     highlightHexes,
     highlightDim,
     highlightOutline,
+    highlightDoneHexes,
+    highlightHideDone,
     getBrightness,
     getCircleBeadCanvas,
     canvasRef,
@@ -906,12 +914,15 @@ function drawSymmetryLines(
 }
 
 /**
- * 高亮配豆叠加层
+ * 高亮配豆叠加层 + 已配完色号的隐藏
  *
- * 做法：先把非高亮区域整体压暗（半透明白色蒙版），再把命中的格子整块重画一遍，
+ * 高亮做法：先把非高亮区域整体压暗（半透明白色蒙版），再把命中的格子整块重画一遍，
  * 这样高亮格保留原本的圆形/方形样式、色号文字与亮度对比，不会出现两套画法。
  * 最后可选地只描「区域外轮廓」——即高亮格中至少有一个非高亮邻居的边，
  * 这样看到的是这一色的整体形状，而不是密密麻麻的逐格方框。
+ *
+ * 进度做法：已勾选「配完」的色号可用 hideDone 直接在画布上淡出（近白蒙版），
+ * 跟着图纸配豆时完成一色就收掉一色。隐藏不需要开启高亮也能独立生效。
  */
 export function drawHighlightOverlay(
   ctx: CanvasRenderingContext2D,
@@ -922,6 +933,10 @@ export function drawHighlightOverlay(
     beadSize: number;
     margin: number;
     hexes: string[];
+    /** 已配完的色号 */
+    doneHexes?: string[];
+    /** 是否在画布上隐藏已配完的色号 */
+    hideDone?: boolean;
     dimStrength: number;
     outline: boolean;
     circleMode: boolean;
@@ -939,54 +954,79 @@ export function drawHighlightOverlay(
     dimStrength, outline, circleMode, showCode, brand, patternA, patternB,
   } = options;
 
+  const done = new Set(options.doneHexes ?? []);
+  const hideDone = !!options.hideDone && done.size > 0;
+  const highlighting = hexes.length > 0;
+
   const wanted = new Set(hexes);
+  const colorAt = (x: number, y: number) => gridData[y]?.[x]?.color ?? 'transparent';
   const isHit = (x: number, y: number) => {
-    const cell = gridData[y]?.[x];
-    return !!cell && cell.color !== 'transparent' && wanted.has(cell.color);
+    const color = colorAt(x, y);
+    if (color === 'transparent' || !wanted.has(color)) return false;
+    // 已配完且要求隐藏的色号不再参与高亮重画
+    if (hideDone && done.has(color)) return false;
+    return true;
   };
 
-  // 1) 压暗非高亮区域
+  const areaX = margin;
+  const areaY = margin;
+  const areaW = cols * beadSize;
+  const areaH = rows * beadSize;
+
+  // 1) 压暗非高亮区域（仅在高亮开启时整片压暗）
   const alpha = Math.max(0, Math.min(95, dimStrength)) / 100;
-  if (alpha > 0) {
+  if (highlighting && alpha > 0) {
     ctx.save();
     ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-    ctx.fillRect(margin, margin, cols * beadSize, rows * beadSize);
+    ctx.fillRect(areaX, areaY, areaW, areaH);
     ctx.restore();
   }
 
   // 2) 只保留命中格，复用主绘制逻辑整块重画（保留圆豆样式与色号文字）
-  const hitGrid: GridCell[][] = [];
-  for (let y = 0; y < rows; y++) {
-    const row: GridCell[] = [];
-    for (let x = 0; x < cols; x++) {
-      const cell = gridData[y]?.[x];
-      row.push(
-        cell && isHit(x, y)
-          ? cell
-          : { x, y, color: 'transparent', codes: {} },
-      );
+  if (highlighting) {
+    const hitGrid: GridCell[][] = [];
+    for (let y = 0; y < rows; y++) {
+      const row: GridCell[] = [];
+      for (let x = 0; x < cols; x++) {
+        const cell = gridData[y]?.[x];
+        row.push(cell && isHit(x, y) ? cell : { x, y, color: 'transparent', codes: {} });
+      }
+      hitGrid.push(row);
     }
-    hitGrid.push(row);
+
+    // 跳过棋盘格底纹，避免把刚压暗的背景又盖回不透明图案
+    drawNormalBeads({
+      ctx,
+      gridData: hitGrid,
+      beadSize,
+      margin,
+      circleMode,
+      showCode,
+      brand,
+      getBrightness: options.getBrightness,
+      getCircleBeadCanvas: options.getCircleBeadCanvas,
+      patternA,
+      patternB,
+      skipTransparentPattern: true,
+    });
   }
 
-  // 注意：这里跳过棋盘格底纹，避免把刚压暗的背景又盖回不透明图案
-  drawNormalBeads({
-    ctx,
-    gridData: hitGrid,
-    beadSize,
-    margin,
-    circleMode,
-    showCode,
-    brand,
-    getBrightness: options.getBrightness,
-    getCircleBeadCanvas: options.getCircleBeadCanvas,
-    patternA,
-    patternB,
-    skipTransparentPattern: true,
-  });
+  // 3) 隐藏已配完的色号（放在高亮重画之后，保证「已配完 + 被高亮」的格子也被收掉）
+  if (hideDone) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const color = colorAt(x, y);
+        if (color === 'transparent' || !done.has(color)) continue;
+        ctx.fillRect(margin + x * beadSize, margin + y * beadSize, beadSize, beadSize);
+      }
+    }
+    ctx.restore();
+  }
 
-  // 3) 可选：只描高亮区域的外轮廓
-  if (!outline) return;
+  // 4) 可选：只描高亮区域的外轮廓
+  if (!outline || !highlighting) return;
   ctx.save();
   ctx.strokeStyle = 'rgba(255, 94, 87, 0.95)';
   ctx.lineWidth = Math.max(2, Math.round(beadSize / 4));
@@ -997,13 +1037,9 @@ export function drawHighlightOverlay(
       if (!isHit(x, y)) continue;
       const px = margin + x * beadSize;
       const py = margin + y * beadSize;
-      // 上
       if (!isHit(x, y - 1)) { ctx.moveTo(px, py); ctx.lineTo(px + beadSize, py); }
-      // 下
       if (!isHit(x, y + 1)) { ctx.moveTo(px, py + beadSize); ctx.lineTo(px + beadSize, py + beadSize); }
-      // 左
       if (!isHit(x - 1, y)) { ctx.moveTo(px, py); ctx.lineTo(px, py + beadSize); }
-      // 右
       if (!isHit(x + 1, y)) { ctx.moveTo(px + beadSize, py); ctx.lineTo(px + beadSize, py + beadSize); }
     }
   }

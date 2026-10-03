@@ -15,7 +15,8 @@ import { RemoveBgButton } from './components/RemoveBgButton';
 import { BgRemovePanel } from './components/BgRemovePanel';
 
 import { LegendBar } from './components/LegendBar';
-import { BeadHighlightBar } from './components/BeadHighlightBar';
+import { BeadHighlightPanel } from './components/BeadHighlightPanel';
+import { BeadHighlightTrigger } from './components/BeadHighlightTrigger';
 import { FloatingZoom } from './components/FloatingZoom';
 import { EditPanel } from './components/EditPanel';
 import { PerlerEngine } from './engine/PerlerEngine';
@@ -388,8 +389,8 @@ export default function App() {
               <ModeBackground mode={mode} />
             </div>
             <CanvasEditor onImageSelect={handleImageSelect} />
-            {/* 高亮配豆（三种模式都可用） */}
-            {gridData && gridData.length > 0 && <BeadHighlightBar />}
+            {/* 高亮配豆入口（fixed 定位，不受画布滚动影响） */}
+            {gridData && gridData.length > 0 && <BeadHighlightTrigger />}
             {/* 绘制模式下缩放条放在画板区域内 */}
             {gridData && gridData.length > 0 && mode === 'draw' && (
               <FloatingZoom className="!absolute bottom-4 right-4 z-50" />
@@ -475,6 +476,9 @@ export default function App() {
             : '直接切换会清空当前图纸，如需编辑请前往绘制模式。确认后图纸将被清空，是否继续？'}
         </p>
       </Modal>
+
+      {/* 高亮配豆面板：fixed 定位，三种模式都可用，不会被画布滚动容器裁剪 */}
+      {gridData && gridData.length > 0 && <BeadHighlightPanel />}
     </div>
     </TooltipProvider>
   );

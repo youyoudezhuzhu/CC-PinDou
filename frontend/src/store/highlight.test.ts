@@ -9,7 +9,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   useHighlightStore,
   summarizeHighlight,
-  DEFAULT_DIM_STRENGTH,
+  summarizeProgress,
+
 } from './useHighlightStore';
 import { drawHighlightOverlay } from '../hooks/useCanvasRenderer';
 import type { GridCell } from '../types/perler';
@@ -19,12 +20,8 @@ const NEAR_RED = '#FE0000'; // 与红色极接近，但必须视为不同色号
 const BLUE = '#0000FF';
 
 function resetStore() {
-  useHighlightStore.setState({
-    enabled: false,
-    hexes: [],
-    dimStrength: DEFAULT_DIM_STRENGTH,
-    outline: true,
-  });
+  // 直接调用 store 自带的 reset，避免漏字段导致测试间状态泄漏
+  useHighlightStore.getState().reset();
 }
 
 function makeGrid(rows: number, cols: number, colors: (x: number, y: number) => string): GridCell[][] {
@@ -290,5 +287,172 @@ describe('drawHighlightOverlay', () => {
     const painted = fillRects.filter(([, , w, h]) => w === 10 && h === 10);
     expect(painted).toHaveLength(1);
     expect(painted[0]).toEqual([0, 0, 10, 10]); // 只有 #FF0000 那一格
+  });
+});
+
+describe('useHighlightStore / 逐色配豆进度', () => {
+  beforeEach(resetStore);
+
+  it('toggleDone 应切换某色号的完成状态', () => {
+    const s = useHighlightStore.getState();
+    expect(s.doneHexes).toEqual([]);
+    s.toggleDone(RED);
+    expect(useHighlightStore.getState().doneHexes).toEqual([RED]);
+    useHighlightStore.getState().toggleDone(BLUE);
+    expect(useHighlightStore.getState().doneHexes).toEqual([RED, BLUE]);
+    // 再点一次取消
+    useHighlightStore.getState().toggleDone(RED);
+    expect(useHighlightStore.getState().doneHexes).toEqual([BLUE]);
+  });
+
+  it('marking done 不应影响高亮选择', () => {
+    useHighlightStore.getState().toggleHex(RED);
+    useHighlightStore.getState().toggleDone(RED);
+    expect(useHighlightStore.getState().hexes).toEqual([RED]);
+    expect(useHighlightStore.getState().enabled).toBe(true);
+    expect(useHighlightStore.getState().doneHexes).toEqual([RED]);
+  });
+
+  it('clearDone 应清空进度但保留高亮', () => {
+    useHighlightStore.getState().setHexes([RED]);
+    useHighlightStore.getState().setDoneHexes([RED, BLUE]);
+    useHighlightStore.getState().clearDone();
+    expect(useHighlightStore.getState().doneHexes).toEqual([]);
+    expect(useHighlightStore.getState().hexes).toEqual([RED]);
+  });
+
+  it('prune 应同时清理高亮与进度中已不存在的色号', () => {
+    useHighlightStore.getState().setHexes([RED, BLUE]);
+    useHighlightStore.getState().setDoneHexes([RED, BLUE]);
+    useHighlightStore.getState().prune([RED]);
+    expect(useHighlightStore.getState().hexes).toEqual([RED]);
+    expect(useHighlightStore.getState().doneHexes).toEqual([RED]);
+  });
+
+  it('隐藏已配完默认开启', () => {
+    expect(useHighlightStore.getState().hideDone).toBe(true);
+    useHighlightStore.getState().setHideDone(false);
+    expect(useHighlightStore.getState().hideDone).toBe(false);
+  });
+});
+
+describe('summarizeProgress', () => {
+  const colorList = [
+    { hex: RED, count: 100 },
+    { hex: BLUE, count: 50 },
+    { hex: NEAR_RED, count: 50 },
+  ];
+
+  it('应按豆数统计进度', () => {
+    const p = summarizeProgress(colorList, []);
+    expect(p.totalColors).toBe(3);
+    expect(p.totalBeads).toBe(200);
+    expect(p.doneColors).toBe(0);
+    expect(p.percent).toBe(0);
+
+    const half = summarizeProgress(colorList, [RED]);
+    expect(half.doneColors).toBe(1);
+    expect(half.doneBeads).toBe(100);
+    expect(half.percent).toBe(50);
+
+    const all = summarizeProgress(colorList, [RED, BLUE, NEAR_RED]);
+    expect(all.doneColors).toBe(3);
+    expect(all.doneBeads).toBe(200);
+    expect(all.percent).toBe(100);
+  });
+
+  it('进度中已不存在的色号不应计入', () => {
+    const p = summarizeProgress(colorList, ['#123456']);
+    expect(p.doneColors).toBe(0);
+    expect(p.doneBeads).toBe(0);
+  });
+
+  it('空配色不应除以零', () => {
+    const p = summarizeProgress([], [RED]);
+    expect(p.totalBeads).toBe(0);
+    expect(p.percent).toBe(0);
+    expect(summarizeProgress(null, []).percent).toBe(0);
+  });
+});
+
+describe('drawHighlightOverlay / 隐藏已配完的色号', () => {
+  const baseOptions = {
+    rows: 2,
+    cols: 2,
+    beadSize: 10,
+    margin: 0,
+    dimStrength: 80,
+    circleMode: false,
+    showCode: false,
+    brand: 'MARD',
+    getBrightness: () => 100,
+    getCircleBeadCanvas: () => ({ width: 10, height: 10 }) as unknown as HTMLCanvasElement,
+  };
+
+  it('hideDone 应给已配完的格子盖近白蒙版', () => {
+    const grid = makeGrid(2, 2, (x) => (x === 0 ? RED : BLUE));
+    const { ctx, fillRects } = createMockCtx();
+
+    drawHighlightOverlay(ctx as unknown as CanvasRenderingContext2D, {
+      ...baseOptions,
+      gridData: grid,
+      hexes: [],
+      doneHexes: [RED],
+      hideDone: true,
+      outline: false,
+    });
+
+    // 左侧两个红格被隐藏（10x10 的近白蒙版），蓝格不受影响
+    const hidden = fillRects.filter(([, , w, h]) => w === 10 && h === 10);
+    expect(hidden).toHaveLength(2);
+    expect(hidden).toContainEqual([0, 0, 10, 10]);
+    expect(hidden).toContainEqual([0, 10, 10, 10]);
+  });
+
+  it('hideDone 关闭时不应隐藏任何格子', () => {
+    const grid = makeGrid(2, 2, () => RED);
+    const { ctx, fillRects } = createMockCtx();
+    drawHighlightOverlay(ctx as unknown as CanvasRenderingContext2D, {
+      ...baseOptions,
+      gridData: grid,
+      hexes: [],
+      doneHexes: [RED],
+      hideDone: false,
+      outline: false,
+    });
+    expect(fillRects.filter(([, , w, h]) => w === 10 && h === 10)).toHaveLength(0);
+  });
+
+  it('隐藏已配完时不开启高亮，也不应整片压暗', () => {
+    const grid = makeGrid(2, 2, () => BLUE);
+    const { ctx, fillRects } = createMockCtx();
+    drawHighlightOverlay(ctx as unknown as CanvasRenderingContext2D, {
+      ...baseOptions,
+      gridData: grid,
+      hexes: [],           // 没有高亮选择
+      doneHexes: [RED],
+      hideDone: true,
+      outline: false,
+    });
+    // 没有命中任何已配完的格子 → 不应有任何绘制
+    expect(fillRects).toHaveLength(0);
+  });
+
+  it('已配完的色号即使被高亮也不应被重画（交由隐藏处理）', () => {
+    const grid = makeGrid(2, 2, () => RED);
+    const { ctx, fillRects } = createMockCtx();
+    drawHighlightOverlay(ctx as unknown as CanvasRenderingContext2D, {
+      ...baseOptions,
+      gridData: grid,
+      hexes: [RED],
+      doneHexes: [RED],
+      hideDone: true,
+      outline: false,
+    });
+    // 4 个格子都应是「隐藏蒙版」而不是「高亮重画」；
+    // 两者尺寸相同，靠填充色区分不了，这里用调用次数判断：
+    // 整片压暗 1 次 + 4 次隐藏蒙版 = 5 次 fillRect，且不含高亮重画额外的 4 次
+    expect(fillRects).toHaveLength(5);
+    expect(fillRects[0]).toEqual([0, 0, 20, 20]); // 整片压暗
   });
 });
