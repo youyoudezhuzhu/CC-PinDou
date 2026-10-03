@@ -35,12 +35,15 @@ export const SOURCES = {
       `ark-pixel-font-${size}-${mode}-bdf-v${ARK_VERSION}.zip`,
     member: (size, mode) => `ark-pixel-${size}-${mode}-zh_hans.bdf`,
     /**
-     * 实测：ark 10px 仅有 4074 个字形，GB2312 一级常用字 3755 个里缺 3153 个（约 84%）。
-     * 官方 README 也说明该字体仍在开发中、缺字严重，10/12px 建议改用缝合像素字体。
-     * 因此这里保留登记信息但默认不构建（可用 --only pixel-10-ark-mono 强制尝试）。
+     * 实测（2026.09.25 版）：
+     *   ark 10px：GB2312 一级常用字 3755 个里缺 3153 个（84%），基本不可用
+     *   ark 12px：缺 172 个（4.6%），但缺的偏偏是「热 然 旅 班 药 餐 紫 聚 警 辨
+     *             遥 避 酸 鉴 骤 恋 恐 悠 慈 执 拖 拳 搬 摇」这类高频常用字，
+     *             用户输入日常中文几乎必然踩到缺字方框，因此同样不采用。
+     * 官方 README 也说明该字体仍在开发中、缺字严重。
      */
     disabled: true,
-    disabledReason: 'GB2312 一级常用字缺字约 84%，不适合作为中文选项',
+    disabledReason: '12px 缺字虽仅 4.6%，但缺失的是高频常用字（热/旅/班/药/餐/紫…），日常中文会踩到缺字',
   },
   unifont: {
     name: 'GNU Unifont',
