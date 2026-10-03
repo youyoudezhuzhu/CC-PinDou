@@ -1,15 +1,15 @@
 /**
- * 中文点阵字体运行时加载器
+ * 像素点阵字体运行时加载器（多字体）
  *
- * 数据由 scripts/build-cjk-font.mjs 从 Fusion Pixel Font（缝合像素字体）
- * 的 BDF 字库子集化生成 —— 是真正逐像素手绘的点阵字形，
- * 不是把轮廓字体缩小后栅格化的产物，因此 12px 下汉字笔画依然清晰。
+ * 数据由 scripts/build-pixel-fonts.mjs 从各字体的 BDF 子集化生成 ——
+ * 都是逐像素手工绘制的真实点阵字形，不是轮廓栅格化、
+ * 也不是把同一字形加粗或整数倍放大伪造出来的。
  *
- * 体积较大（约 86 KB / 4000 字），因此**按需加载**：
- * 只有用户主动选择中文点阵字体时才 fetch，默认的 5×7 拉丁字体不受影响。
+ * 每个字体单独打包、**按需加载**：只有用户真正选中某个字体时才 fetch，
+ * 默认的 5×7 拉丁字体与其它字体都不会进首屏。
  */
 
-import { registerPixelFont, type PixelFont, type PixelGlyph } from './pixelFont';
+import { normalizeFontId, registerPixelFont, type PixelFont, type PixelGlyph } from './pixelFont';
 
 /** CPXF 二进制格式常量 */
 const MAGIC = 'CPXF';
@@ -21,6 +21,10 @@ export interface PackedFontMeta {
   id: string;
   /** UI 展示名 */
   name: string;
+  /** 分组（按像素尺寸），用于 UI 归类 */
+  group: string;
+  /** 一句话特点说明 */
+  desc: string;
   /** 数据文件路径（相对 BASE_URL） */
   url: string;
   /** 字距（等宽字体步进已含字距，通常为 0） */
@@ -30,15 +34,76 @@ export interface PackedFontMeta {
   license: string;
 }
 
-/** 中文点阵字体元信息 */
-export const CJK_PIXEL_FONT_META: PackedFontMeta = {
-  id: 'pixel-12-zh-hans',
-  name: 'Pixel 12×12 中文',
-  url: 'fonts/pixel-12-zh-hans.bin',
-  letterSpacing: 0,
-  lineSpacing: 1,
-  license: 'Fusion Pixel Font (OFL-1.1) © TakWolf',
-};
+/** 可用的打包字体清单（与 scripts/pixel-font-manifest.mjs 保持一致） */
+export const PACKED_PIXEL_FONTS: PackedFontMeta[] = [
+  {
+    id: 'pixel-8-fusion-mono',
+    name: '缝合像素 8px 等宽',
+    group: '8 像素',
+    desc: '最紧凑，适合小图纸与长文本（笔画为 8px 专门简化）',
+    url: 'fonts/pixel-8-fusion-mono.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    license: 'Fusion Pixel Font (OFL-1.1) © TakWolf',
+  },
+  {
+    id: 'pixel-10-fusion-mono',
+    name: '缝合像素 10px 等宽',
+    group: '10 像素',
+    desc: '紧凑，笔画比 8px 更清晰',
+    url: 'fonts/pixel-10-fusion-mono.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    license: 'Fusion Pixel Font (OFL-1.1) © TakWolf',
+  },
+  {
+    id: 'pixel-12-fusion-mono',
+    name: '缝合像素 12px 等宽',
+    group: '12 像素',
+    desc: '标准选择，汉字清晰、严格对齐网格',
+    url: 'fonts/pixel-12-fusion-mono.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    license: 'Fusion Pixel Font (OFL-1.1) © TakWolf',
+  },
+  {
+    id: 'pixel-12-fusion-prop',
+    name: '缝合像素 12px 比例',
+    group: '12 像素',
+    desc: '按字形实际宽度分配字距，行高更宽松，排版更自然',
+    url: 'fonts/pixel-12-fusion-prop.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    license: 'Fusion Pixel Font (OFL-1.1) © TakWolf',
+  },
+  {
+    id: 'pixel-16-unifont',
+    name: 'Unifont 16px 等宽',
+    group: '16 像素',
+    desc: '字面最大，复杂汉字笔画最清晰，占豆也最多',
+    url: 'fonts/pixel-16-unifont.bin',
+    letterSpacing: 0,
+    lineSpacing: 1,
+    license: 'GNU Unifont (OFL-1.1) © Roman Czyborra, Paul Hardy',
+  },
+];
+
+/**
+ * 字体 id 别名：早期版本只提供过一个中文点阵字体 id `pixel-12-zh-hans`，
+ * 现已细分为多个字号/字面。别名表在 pixelFont.ts 中统一维护（getPixelFont 也用它），
+ * 这里复用同一份实现，避免两处不一致。
+ */
+
+/** 按 id 取字体元信息（自动解析历史别名） */
+export function getPackedFontMeta(id: string): PackedFontMeta | undefined {
+  const normalized = normalizeFontId(id);
+  return PACKED_PIXEL_FONTS.find((font) => font.id === normalized);
+}
+
+/** 该 id 是否为需要按需加载的打包字体 */
+export function isPackedFont(id: string): boolean {
+  return getPackedFontMeta(id) !== undefined;
+}
 
 /** 已加载的字体缓存：同一字体只解析一次 */
 const loadedFonts = new Map<string, PixelFont>();
@@ -101,10 +166,9 @@ export function decodePackedFont(buffer: ArrayBuffer, meta: PackedFontMeta): Pix
   for (let i = 0; i < count; i++) {
     const codepoint = bytes[offset] | (bytes[offset + 1] << 8);
     const advance = bytes[offset + 2] || cellW;
-    const bitmapOffset = offset + 4;
     glyphs[String.fromCodePoint(codepoint)] = decodeGlyph(
       bytes,
-      bitmapOffset,
+      offset + 4,
       cellW,
       cellH,
       advance,
@@ -141,20 +205,30 @@ function resolveFontUrl(url: string): string {
   return `${normalizedBase}${normalizedPath}`;
 }
 
-/** 该中文字体是否已经加载完成 */
-export function isCjkFontLoaded(): boolean {
-  return loadedFonts.has(CJK_PIXEL_FONT_META.id);
+/** 某个打包字体是否已加载完成 */
+export function isPixelFontLoaded(id: string): boolean {
+  return loadedFonts.has(normalizeFontId(id) ?? id);
+}
+
+/** 全部已加载的打包字体 id */
+export function loadedPixelFontIds(): string[] {
+  return Array.from(loadedFonts.keys());
 }
 
 /**
- * 按需加载中文点阵字体并注册到字体表。
+ * 按需加载指定打包字体并注册到字体表。
  * 重复调用会复用同一个 Promise，不会重复下载。
  */
-export function loadCjkPixelFont(meta: PackedFontMeta = CJK_PIXEL_FONT_META): Promise<PixelFont> {
-  const cached = loadedFonts.get(meta.id);
+export function loadPixelFont(id: string): Promise<PixelFont> {
+  const meta = getPackedFontMeta(id);
+  if (!meta) return Promise.reject(new Error(`未知字体: ${id}`));
+
+  // 统一以规范化 id 作为缓存键，别名与真名不会各存一份
+  const key = meta.id;
+  const cached = loadedFonts.get(key);
   if (cached) return Promise.resolve(cached);
 
-  const pending = pendingLoads.get(meta.id);
+  const pending = pendingLoads.get(key);
   if (pending) return pending;
 
   const task = (async () => {
@@ -164,21 +238,21 @@ export function loadCjkPixelFont(meta: PackedFontMeta = CJK_PIXEL_FONT_META): Pr
     }
     const buffer = await response.arrayBuffer();
     const font = decodePackedFont(buffer, meta);
-    loadedFonts.set(meta.id, font);
+    loadedFonts.set(key, font);
     registerPixelFont(font);
-    pendingLoads.delete(meta.id);
+    pendingLoads.delete(key);
     return font;
   })().catch((error) => {
-    pendingLoads.delete(meta.id);
+    pendingLoads.delete(key);
     throw error;
   });
 
-  pendingLoads.set(meta.id, task);
+  pendingLoads.set(key, task);
   return task;
 }
 
 /** 测试用：清空缓存 */
-export function __resetCjkFontCache(): void {
+export function __resetPackedFontCache(): void {
   loadedFonts.clear();
   pendingLoads.clear();
 }

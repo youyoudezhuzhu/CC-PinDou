@@ -203,10 +203,26 @@ const FONT_REGISTRY: PixelFont[] = [PIXEL_FONT_5X7];
 /** 默认字体 id */
 export const DEFAULT_PIXEL_FONT_ID = PIXEL_FONT_5X7.id;
 
+/**
+ * 历史字体 id 别名。
+ * 早期版本只提供一个中文点阵字体 `pixel-12-zh-hans`，现已细分为多个字号/字面，
+ * 保留别名让旧工程文件仍能正确渲染。
+ */
+const FONT_ID_ALIASES: Record<string, string> = {
+  'pixel-12-zh-hans': 'pixel-12-fusion-mono',
+};
+
+/** 把历史字体 id 规范化为当前 id */
+export function normalizeFontId(id?: string): string | undefined {
+  if (!id) return id;
+  return FONT_ID_ALIASES[id] ?? id;
+}
+
 /** 按 id 取字体；未知 id 回退到默认字体，保证旧工程文件仍可渲染 */
 export function getPixelFont(id?: string): PixelFont {
-  if (!id) return PIXEL_FONT_5X7;
-  return FONT_REGISTRY.find((font) => font.id === id) ?? PIXEL_FONT_5X7;
+  const normalized = normalizeFontId(id);
+  if (!normalized) return PIXEL_FONT_5X7;
+  return FONT_REGISTRY.find((font) => font.id === normalized) ?? PIXEL_FONT_5X7;
 }
 
 /** 列出已注册字体（供 UI 下拉框使用） */
