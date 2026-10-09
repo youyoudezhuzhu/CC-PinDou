@@ -134,11 +134,15 @@ describe('GridGuidePanel（右侧栏卡片）', () => {
       canvasConfig: { ...useConfigStore.getState().canvasConfig, showMarkLines: true },
     });
     renderPanel();
-    expect(screen.getByText('小格 · 细线')).toBeInTheDocument();
-    expect(screen.getByText('大格 · 粗线')).toBeInTheDocument();
-    expect(screen.getByText('细线粗细')).toBeInTheDocument();
-    expect(screen.getByText('粗线粗细')).toBeInTheDocument();
+    expect(screen.getByText('小格')).toBeInTheDocument();
+    expect(screen.getByText('大格')).toBeInTheDocument();
+    expect(screen.getByText('细线')).toBeInTheDocument();
+    expect(screen.getByText('粗线')).toBeInTheDocument();
     expect(screen.getByText('位移（格）')).toBeInTheDocument();
+    // 不应再出现滑块（改用箭头步进 + 可输入数值）
+    expect(document.querySelectorAll('[role="slider"]')).toHaveLength(0);
+    // 不应再有「快速位移」与底部注释
+    expect(screen.queryByText('快速')).toBeNull();
   });
 
   it('方向键应逐格移动田字格（实时写入 canvasConfig，可连续累加）', () => {
@@ -200,12 +204,87 @@ describe('GridGuidePanel（右侧栏卡片）', () => {
       },
     });
     renderPanel();
-    expect(screen.getByText('5 格')).toBeInTheDocument();
-    expect(screen.getByText('10 格')).toBeInTheDocument();
-    expect(screen.getByText('3px')).toBeInTheDocument();
-    expect(screen.getByText('6px')).toBeInTheDocument();
-    expect(screen.getByText('+2')).toBeInTheDocument();
-    expect(screen.getByText('-1')).toBeInTheDocument();
+    expect(screen.getByLabelText('小格间隔')).toHaveValue(5);
+    expect(screen.getByLabelText('大格间隔')).toHaveValue(10);
+    expect(screen.getByLabelText('细线粗细')).toHaveValue(3);
+    expect(screen.getByLabelText('粗线粗细')).toHaveValue(6);
+    expect(screen.getByLabelText('田字格 X 位移')).toHaveValue(2);
+    expect(screen.getByLabelText('田字格 Y 位移')).toHaveValue(-1);
+  });
+
+  it('箭头应逐格增减间隔与线宽', () => {
+    useConfigStore.setState({
+      canvasConfig: { ...useConfigStore.getState().canvasConfig, showMarkLines: true },
+    });
+    renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: '大格间隔加 1' }));
+    expect(useConfigStore.getState().canvasConfig.markInterval).toBe(11);
+    fireEvent.click(screen.getByRole('button', { name: '大格间隔减 1' }));
+    fireEvent.click(screen.getByRole('button', { name: '大格间隔减 1' }));
+    expect(useConfigStore.getState().canvasConfig.markInterval).toBe(9);
+
+    fireEvent.click(screen.getByRole('button', { name: '小格间隔加 1' }));
+    expect(useConfigStore.getState().canvasConfig.minorInterval).toBe(6);
+
+    fireEvent.click(screen.getByRole('button', { name: '粗线变粗' }));
+    expect(useConfigStore.getState().canvasConfig.majorLineWidth).toBe(5);
+    fireEvent.click(screen.getByRole('button', { name: '细线变粗' }));
+    expect(useConfigStore.getState().canvasConfig.minorLineWidth).toBe(3);
+  });
+
+  it('线宽与间隔都应被限制在合法区间', () => {
+    useConfigStore.setState({
+      canvasConfig: {
+        ...useConfigStore.getState().canvasConfig,
+        showMarkLines: true,
+        minorLineWidth: 1,
+        majorLineWidth: 12,
+      },
+    });
+    renderPanel();
+    // 细线最小 1，不能再减
+    fireEvent.click(screen.getByRole('button', { name: '细线变细' }));
+    expect(useConfigStore.getState().canvasConfig.minorLineWidth).toBe(1);
+    // 粗线最大 12，不能再加
+    fireEvent.click(screen.getByRole('button', { name: '粗线变粗' }));
+    expect(useConfigStore.getState().canvasConfig.majorLineWidth).toBe(12);
+  });
+
+  it('中间的数值可以直接手动输入', () => {
+    useConfigStore.setState({
+      canvasConfig: { ...useConfigStore.getState().canvasConfig, showMarkLines: true },
+    });
+    renderPanel();
+
+    const input = screen.getByLabelText('大格间隔');
+    fireEvent.change(input, { target: { value: '24' } });
+    // 回车提交
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(useConfigStore.getState().canvasConfig.markInterval).toBe(24);
+
+    // 失焦提交
+    const lineInput = screen.getByLabelText('粗线粗细');
+    fireEvent.change(lineInput, { target: { value: '9' } });
+    fireEvent.blur(lineInput);
+    expect(useConfigStore.getState().canvasConfig.majorLineWidth).toBe(9);
+  });
+
+  it('手输超出范围的值应被夹到边界', () => {
+    useConfigStore.setState({
+      canvasConfig: { ...useConfigStore.getState().canvasConfig, showMarkLines: true },
+    });
+    renderPanel();
+
+    const input = screen.getByLabelText('细线粗细');
+    fireEvent.change(input, { target: { value: '99' } });
+    fireEvent.blur(input);
+    expect(useConfigStore.getState().canvasConfig.minorLineWidth).toBe(8);
+
+    const big = screen.getByLabelText('大格间隔');
+    fireEvent.change(big, { target: { value: '1' } });
+    fireEvent.blur(big);
+    expect(useConfigStore.getState().canvasConfig.markInterval).toBe(2);
   });
 
   it('必须挂在右侧栏（App 里位于背景图层面板下方），且不是模态弹窗', () => {
