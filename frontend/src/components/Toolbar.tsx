@@ -13,6 +13,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import {
   Save,
   Settings,
+  Grid3X3,
   Clock,
   Check,
   X,
@@ -115,6 +116,16 @@ export function Toolbar() {
             <TooltipTrigger asChild>
               <Button variant="icon-sm" color="none" className="bg-[var(--bg-surface)] border-[3px] border-[var(--nook-wood-light)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-alt)]" onClick={openSettings}>
                 <Settings className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="icon-sm"
+                color="none"
+                className="bg-[var(--bg-surface)] border-[3px] border-[var(--nook-wood-light)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-alt)]"
+                onClick={() => useUIStore.getState().setGridGuideOpen(!useUIStore.getState().gridGuideOpen)}
+                aria-label="田字格定位"
+                title="田字格定位：5×5 细线 / 10×10 粗线，可上下左右推移"
+              >
+                <Grid3X3 className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>设置（品牌 / 色号 / 标识线 / 预览）</TooltipContent>

@@ -343,6 +343,8 @@ export function detectPixelSizeFrontend(
 // 前端导出（Canvas 降级）
 // =============================================================================
 
+import { isGuideLine } from '../hooks/useCanvasRenderer';
+
 export interface FrontendExportOptions {
   fileName: string;
   format: 'png' | 'jpg';
@@ -350,7 +352,13 @@ export interface FrontendExportOptions {
   showLegend: boolean;
   circleMode: boolean;
   showMarkLines: boolean;
+  /** 大格间隔（粗线） */
   markInterval: number;
+  /** 小格间隔（细线），缺省回退为 markInterval（即只有一级分组） */
+  minorInterval?: number;
+  /** 田字格位移（格） */
+  gridOffsetX?: number;
+  gridOffsetY?: number;
   beadSize?: number;
   margin?: number;
 }
@@ -367,6 +375,9 @@ export async function exportImageFrontend(
     circleMode,
     showMarkLines,
     markInterval,
+    minorInterval,
+    gridOffsetX = 0,
+    gridOffsetY = 0,
     beadSize = 28,
     margin = 45,
     format,
@@ -440,22 +451,34 @@ export async function exportImageFrontend(
     }
   }
 
-  // 网格线
-  ctx.strokeStyle = '#BCAAA4';
-  ctx.lineWidth = 1;
+  // 田字格辅助线：每格细线 + 小格中等线 + 大格粗线
+  // 位移与两级分组必须与编辑器（useCanvasRenderer 的 drawGridLines）保持一致，
+  // 否则「编辑器看到的」和「导出的图纸」会对不上。
+  const majorIv = Number.isFinite(markInterval) && markInterval > 0 ? markInterval : 0;
+  const minorIv = Number.isFinite(minorInterval) && (minorInterval ?? 0) > 0 ? (minorInterval as number) : 0;
+  const minorOnly = minorIv > 0 && minorIv !== majorIv;
+
+  const styleFor = (i: number, offset: number): { color: string; width: number } => {
+    if (showMarkLines) {
+      if (isGuideLine(i, majorIv, offset)) return { color: '#5D4037', width: 2 };
+      if (minorOnly && isGuideLine(i, minorIv, offset)) return { color: '#8D6E63', width: 1 };
+    }
+    return { color: '#BCAAA4', width: 1 };
+  };
+
   for (let i = 0; i <= rows; i++) {
-    const isMark = showMarkLines && i > 0 && i % markInterval === 0;
-    ctx.strokeStyle = isMark ? '#5D4037' : '#BCAAA4';
-    ctx.lineWidth = isMark ? 2 : 1;
+    const style = styleFor(i, gridOffsetY);
+    ctx.strokeStyle = style.color;
+    ctx.lineWidth = style.width;
     ctx.beginPath();
     ctx.moveTo(margin, margin + i * beadSize);
     ctx.lineTo(margin + cols * beadSize, margin + i * beadSize);
     ctx.stroke();
   }
   for (let i = 0; i <= cols; i++) {
-    const isMark = showMarkLines && i > 0 && i % markInterval === 0;
-    ctx.strokeStyle = isMark ? '#5D4037' : '#BCAAA4';
-    ctx.lineWidth = isMark ? 2 : 1;
+    const style = styleFor(i, gridOffsetX);
+    ctx.strokeStyle = style.color;
+    ctx.lineWidth = style.width;
     ctx.beginPath();
     ctx.moveTo(margin + i * beadSize, margin);
     ctx.lineTo(margin + i * beadSize, margin + rows * beadSize);

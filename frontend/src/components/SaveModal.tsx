@@ -79,6 +79,9 @@ export function SaveModal({ isOpen, onClose, backendAvailable }: SaveModalProps)
           circle_mode: circleMode,
           show_mark_lines: showMarkLines,
           mark_interval: safeMarkInterval,
+          minor_interval: canvasConfig.minorInterval,
+          grid_offset_x: canvasConfig.gridOffsetX,
+          grid_offset_y: canvasConfig.gridOffsetY,
           format,
         };
         const response = await fetch('/export', {
@@ -100,6 +103,9 @@ export function SaveModal({ isOpen, onClose, backendAvailable }: SaveModalProps)
           circleMode,
           showMarkLines,
           markInterval,
+          minorInterval: canvasConfig.minorInterval,
+          gridOffsetX: canvasConfig.gridOffsetX,
+          gridOffsetY: canvasConfig.gridOffsetY,
         });
       }
       const url = window.URL.createObjectURL(blob);

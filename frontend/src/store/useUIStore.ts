@@ -9,6 +9,8 @@ interface UIState {
   leftPanelCollapsed: boolean;
   legendCollapsed: boolean;
   lastSavedAt: number | null;
+  /** 田字格定位面板是否展开 */
+  gridGuideOpen: boolean;
 
   // ========== 绘制模式参数 ==========
   drawTool: 'pen' | 'line' | 'rect' | 'circle' | 'fill' | 'eraser' | 'wand' | 'replace' | 'move' | 'eyedropper' | 'text';
@@ -30,6 +32,7 @@ interface UIState {
   toggleLeftPanel: () => void;
   toggleLegend: () => void;
   setLastSavedAt: (ts: number | null) => void;
+  setGridGuideOpen: (v: boolean) => void;
 
   setDrawTool: (tool: UIState['drawTool']) => void;
   setSymmetryMode: (mode: UIState['symmetryMode']) => void;
@@ -49,6 +52,7 @@ export const useUIStore = create<UIState>()(
       leftPanelCollapsed: false,
       legendCollapsed: false,
       lastSavedAt: null,
+      gridGuideOpen: false,
 
       drawTool: 'pen',
       symmetryMode: 'none',
@@ -67,6 +71,7 @@ export const useUIStore = create<UIState>()(
       toggleLeftPanel: () => set((state) => ({ leftPanelCollapsed: !state.leftPanelCollapsed })),
       toggleLegend: () => set((state) => ({ legendCollapsed: !state.legendCollapsed })),
       setLastSavedAt: (ts) => set({ lastSavedAt: ts }),
+      setGridGuideOpen: (v) => set({ gridGuideOpen: v }),
 
       setDrawTool: (tool) => set((state) => {
         // 保存当前工具的配置

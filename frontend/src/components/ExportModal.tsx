@@ -50,6 +50,9 @@ export function ExportModal({ isOpen, onClose, backendAvailable }: ExportModalPr
           circle_mode: circleMode,
           show_mark_lines: showMarkLines,
           mark_interval: safeMarkInterval,
+          minor_interval: canvasConfig.minorInterval,
+          grid_offset_x: canvasConfig.gridOffsetX,
+          grid_offset_y: canvasConfig.gridOffsetY,
           format,
         };
 
@@ -75,6 +78,9 @@ export function ExportModal({ isOpen, onClose, backendAvailable }: ExportModalPr
           circleMode,
           showMarkLines,
           markInterval,
+          minorInterval: canvasConfig.minorInterval,
+          gridOffsetX: canvasConfig.gridOffsetX,
+          gridOffsetY: canvasConfig.gridOffsetY,
         });
       }
 

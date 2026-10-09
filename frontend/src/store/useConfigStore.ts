@@ -10,7 +10,11 @@ const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
   showGrid: true,
   circleMode: false,
   showMarkLines: false,
-  markInterval: 5,
+  // 大格 10 + 小格 5 是拼豆图纸最常用的分组（10 颗一组便于数豆）
+  markInterval: 10,
+  minorInterval: 5,
+  gridOffsetX: 0,
+  gridOffsetY: 0,
 };
 
 interface ConfigState {

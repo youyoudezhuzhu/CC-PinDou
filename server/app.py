@@ -455,11 +455,25 @@ def export_image():
         dither_enabled = True
 
     try:
-        mark_interval = int(data.get('mark_interval', 5))
+        mark_interval = int(data.get('mark_interval', 10))
     except (ValueError, TypeError):
         mark_interval = 5
     if mark_interval < 1:
         mark_interval = 1
+    try:
+        minor_interval = int(data.get('minor_interval', 5))
+    except (TypeError, ValueError):
+        minor_interval = 5
+    if minor_interval < 1:
+        minor_interval = 1
+    try:
+        grid_offset_x = int(data.get('grid_offset_x', 0))
+    except (TypeError, ValueError):
+        grid_offset_x = 0
+    try:
+        grid_offset_y = int(data.get('grid_offset_y', 0))
+    except (TypeError, ValueError):
+        grid_offset_y = 0
 
     fmt = str(data.get('format', 'png')).lower()
     if fmt not in ('png', 'jpg', 'jpeg'):
@@ -481,7 +495,10 @@ def export_image():
             grid_data, color_list, brand=brand, show_code=show_code,
             show_legend=show_legend, circle_mode=circle_mode,
             show_mark_lines=show_mark_lines,
-            mark_interval=mark_interval, fmt=fmt,
+            mark_interval=mark_interval,
+            minor_interval=minor_interval,
+            grid_offset_x=grid_offset_x,
+            grid_offset_y=grid_offset_y, fmt=fmt,
             aa_enabled=aa_enabled,
             dither_enabled=dither_enabled,
             dither_strength=dither_strength

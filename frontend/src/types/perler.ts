@@ -181,8 +181,18 @@ export interface CanvasConfig {
   showCode: boolean;
   showGrid: boolean;
   circleMode: boolean;
+  /** 是否显示田字格辅助线 */
   showMarkLines: boolean;
+  /** 大格间隔（粗线），默认 10 */
   markInterval: number;
+  /** 小格间隔（细线），默认 5 */
+  minorInterval: number;
+  /**
+   * 田字格在 X / Y 方向的位移（单位：格，可为负）。
+   * 相当于把「无限延伸的田字格」整体平移若干格，方便让分组线对齐自己的图案。
+   */
+  gridOffsetX: number;
+  gridOffsetY: number;
 }
 
 /** 导出选项 */

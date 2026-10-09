@@ -29,7 +29,7 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
   const highlightDoneHexes = useHighlightStore((s) => s.doneHexes);
   const highlightHideDone = useHighlightStore((s) => s.hideDone);
 
-  const { beadSize, margin, zoomLevel, showCode, circleMode, showMarkLines, markInterval } = canvasConfig;
+  const { beadSize, margin, zoomLevel, showCode, circleMode, showMarkLines, markInterval, minorInterval, gridOffsetX, gridOffsetY } = canvasConfig;
 
   // ========== 缓存 Refs ==========
   const drawGridPendingRef = useRef(false);
@@ -376,8 +376,14 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
       });
     }
 
-    // 网格线
-    drawGridLines(ctx, rows, cols, beadSize, margin, showMarkLines, markInterval);
+    // 网格线（田字格：每格细线 + 小格中等线 + 大格粗线）
+    drawGridLines(ctx, rows, cols, beadSize, margin, {
+      showMarkLines,
+      minorInterval,
+      majorInterval: markInterval,
+      offsetX: gridOffsetX,
+      offsetY: gridOffsetY,
+    });
 
     // 孤立像素标记
     const _isolatedCells = isolatedCellsRef.current;
@@ -586,6 +592,9 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
     circleMode,
     showMarkLines,
     markInterval,
+    minorInterval,
+    gridOffsetX,
+    gridOffsetY,
     brand,
     mode,
     symmetryMode,
@@ -804,28 +813,68 @@ function drawNormalBeads(options: DrawNormalBeadsOptions) {
   }
 }
 
+/** 田字格参数 */
+export interface GridGuideOptions {
+  showMarkLines: boolean;
+  /** 小格间隔（细线） */
+  minorInterval: number;
+  /** 大格间隔（粗线） */
+  majorInterval: number;
+  /** 田字格 X / Y 方向位移（格，可为负） */
+  offsetX: number;
+  offsetY: number;
+}
+
+/**
+ * 判断第 i 条线是否落在间隔为 interval 的分组线上。
+ * 引入 offset 后等价于把「无限延伸的田字格」整体平移若干格，
+ * 用户可以把分组线对齐到自己的图案上；取模两次是为了兼容负位移。
+ */
+export function isGuideLine(i: number, interval: number, offset: number): boolean {
+  if (!Number.isFinite(interval) || interval <= 0) return false;
+  return (((i - offset) % interval) + interval) % interval === 0;
+}
+
+/** 单个方向的网格线绘制参数 */
+interface GuideStyle {
+  color: string;
+  width: number;
+}
+
 function drawGridLines(
   ctx: CanvasRenderingContext2D,
   rows: number,
   cols: number,
   beadSize: number,
   margin: number,
-  showMarkLines: boolean,
-  markInterval: number,
+  options: GridGuideOptions,
 ) {
+  const { showMarkLines, minorInterval, majorInterval } = options;
+
+  // 大格与小格相同时只按大格画，避免同一条线被画两遍
+  const minorOnly = minorInterval > 0 && minorInterval !== majorInterval;
+
+  const styleFor = (i: number, offset: number): GuideStyle => {
+    if (showMarkLines) {
+      if (isGuideLine(i, majorInterval, offset)) return { color: '#6b7280', width: 2 };
+      if (minorOnly && isGuideLine(i, minorInterval, offset)) return { color: '#9ca3af', width: 1 };
+    }
+    return { color: '#e5e7eb', width: 1 };
+  };
+
   for (let i = 0; i <= rows; i++) {
-    const isMark = showMarkLines && i > 0 && i % markInterval === 0;
-    ctx.strokeStyle = isMark ? '#6b7280' : '#e5e7eb';
-    ctx.lineWidth = isMark ? 2 : 1;
+    const style = styleFor(i, options.offsetY);
+    ctx.strokeStyle = style.color;
+    ctx.lineWidth = style.width;
     ctx.beginPath();
     ctx.moveTo(margin, margin + i * beadSize);
     ctx.lineTo(margin + cols * beadSize, margin + i * beadSize);
     ctx.stroke();
   }
   for (let i = 0; i <= cols; i++) {
-    const isMark = showMarkLines && i > 0 && i % markInterval === 0;
-    ctx.strokeStyle = isMark ? '#6b7280' : '#e5e7eb';
-    ctx.lineWidth = isMark ? 2 : 1;
+    const style = styleFor(i, options.offsetX);
+    ctx.strokeStyle = style.color;
+    ctx.lineWidth = style.width;
     ctx.beginPath();
     ctx.moveTo(margin + i * beadSize, margin);
     ctx.lineTo(margin + i * beadSize, margin + rows * beadSize);

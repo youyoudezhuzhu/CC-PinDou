@@ -189,9 +189,22 @@ def _apply_dither(img, grid_data, bead_size, margin, strength=0.5):
     return img
 
 
+def _is_guide_line(i, interval, offset):
+    """第 i 条线是否落在「间隔 interval、位移 offset」的分组线上。
+
+    与前端 useCanvasRenderer.isGuideLine 保持完全一致：
+    引入 offset 等价于把无限延伸的田字格整体平移若干格；
+    取模两次是为了兼容负位移。
+    """
+    if not interval or interval <= 0:
+        return False
+    return ((i - offset) % interval + interval) % interval == 0
+
+
 def generate_export_image(grid_data, color_list, brand='MARD', show_code=False,
                           show_legend=True, circle_mode=False, show_mark_lines=False,
-                          mark_interval=5, fmt='png',
+                          mark_interval=10, minor_interval=5,
+                          grid_offset_x=0, grid_offset_y=0, fmt='png',
                           aa_enabled=False, dither_enabled=False, dither_strength=0.5):
     """
     根据网格数据和颜色列表生成拼豆图案。
@@ -207,9 +220,17 @@ def generate_export_image(grid_data, color_list, brand='MARD', show_code=False,
 
     # 防御性检查
     if mark_interval is None or mark_interval <= 0:
-        mark_interval = 5
+        mark_interval = 10
     if not isinstance(mark_interval, int):
         mark_interval = int(mark_interval)
+    if minor_interval is None or minor_interval <= 0:
+        minor_interval = 5
+    if not isinstance(minor_interval, int):
+        minor_interval = int(minor_interval)
+    grid_offset_x = int(grid_offset_x or 0)
+    grid_offset_y = int(grid_offset_y or 0)
+    # 大格与小格相同时只按大格画，避免同一条线画两遍
+    minor_only = minor_interval > 0 and minor_interval != mark_interval
 
     bead_size = 28
     margin = 45
@@ -293,29 +314,28 @@ def generate_export_image(grid_data, color_list, brand='MARD', show_code=False,
     if dither_enabled:
         img = _apply_dither(img, grid_data, bead_size, margin, strength=dither_strength)
 
-    # 绘制网格线
+    # 绘制田字格辅助线：每格细线 + 小格中等线 + 大格粗线
+    # 分组与位移逻辑必须与前端 useCanvasRenderer.drawGridLines 完全一致
+    def _style(i, offset):
+        if show_mark_lines:
+            if _is_guide_line(i, mark_interval, offset):
+                return '#333', 2          # 大格 · 粗线
+            if minor_only and _is_guide_line(i, minor_interval, offset):
+                return '#666', 1          # 小格 · 细线
+        return '#999', 1                  # 普通格线
+
     for i in range(rows + 1):
-        if show_mark_lines and i > 0 and i % mark_interval == 0:
-            draw.line(
-                [(margin, margin + i * bead_size), (margin + cols * bead_size, margin + i * bead_size)],
-                fill='#333', width=2
-            )
-        else:
-            draw.line(
-                [(margin, margin + i * bead_size), (margin + cols * bead_size, margin + i * bead_size)],
-                fill='#999', width=1
-            )
+        color, width = _style(i, grid_offset_y)
+        draw.line(
+            [(margin, margin + i * bead_size), (margin + cols * bead_size, margin + i * bead_size)],
+            fill=color, width=width
+        )
     for i in range(cols + 1):
-        if show_mark_lines and i > 0 and i % mark_interval == 0:
-            draw.line(
-                [(margin + i * bead_size, margin), (margin + i * bead_size, margin + rows * bead_size)],
-                fill='#333', width=2
-            )
-        else:
-            draw.line(
-                [(margin + i * bead_size, margin), (margin + i * bead_size, margin + rows * bead_size)],
-                fill='#999', width=1
-            )
+        color, width = _style(i, grid_offset_x)
+        draw.line(
+            [(margin + i * bead_size, margin), (margin + i * bead_size, margin + rows * bead_size)],
+            fill=color, width=width
+        )
 
     # 绘制图例
     if show_legend and color_list:
