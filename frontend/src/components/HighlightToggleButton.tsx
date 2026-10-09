@@ -29,18 +29,22 @@ export function HighlightToggleButton({
   const hexes = useHighlightStore((s) => s.hexes);
   const doneHexes = useHighlightStore((s) => s.doneHexes);
 
-  if (colorList.length === 0) return null;
-
   const active = enabled && hexes.length > 0;
+  // 注意：这个组件会被放进 <TooltipTrigger asChild>，而 Radix 的 asChild 要求
+  // 恰好一个子元素 —— 一旦这里 return null，Slot 就会抛
+  // "React.Children.only expected to receive a single React element child"，
+  // 直接把整棵组件树打崩（只剩背景）。所以没有配色时返回禁用按钮而不是 null。
+  const disabled = colorList.length === 0;
 
   if (iconOnly) {
     return (
       <button
         type="button"
-        onClick={() => setPanelOpen(!panelOpen)}
-        title="高亮配豆：按色号高亮 + 逐色配豆进度"
+        disabled={disabled}
+        onClick={() => !disabled && setPanelOpen(!panelOpen)}
+        title={disabled ? '高亮配豆（当前画板还没有配色）' : '高亮配豆：按色号高亮 + 逐色配豆进度'}
         aria-label="高亮配豆"
-        className={cn('nook-tool relative', className)}
+        className={cn('nook-tool relative', disabled && 'opacity-30 pointer-events-none', className)}
         style={
           active || panelOpen
             ? { background: theme.light8, borderColor: theme.main, color: theme.dark1 }
@@ -63,12 +67,14 @@ export function HighlightToggleButton({
   return (
     <button
       type="button"
-      onClick={() => setPanelOpen(!panelOpen)}
-      title="高亮配豆：按色号高亮 + 逐色配豆进度"
+      disabled={disabled}
+      onClick={() => !disabled && setPanelOpen(!panelOpen)}
+      title={disabled ? '高亮配豆（当前画板还没有配色）' : '高亮配豆：按色号高亮 + 逐色配豆进度'}
       aria-label="高亮配豆"
       className={cn(
         'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold shrink-0',
         'border transition-colors duration-200',
+        disabled && 'opacity-40 cursor-not-allowed',
         className,
       )}
       style={

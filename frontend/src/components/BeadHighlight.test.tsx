@@ -66,10 +66,14 @@ describe('HighlightToggleButton', () => {
     expect(btn.className).not.toContain('absolute');
   });
 
-  it('没有配色时不应渲染入口', () => {
+  it('没有配色时应渲染为禁用按钮，而不是返回 null', () => {
+    // 关键：这个按钮会被放进 <TooltipTrigger asChild>，
+    // 一旦 return null，Radix 的 Slot 会抛 React.Children.only 把整棵树打崩。
     useEditorStore.setState({ colorList: [] });
-    const { container } = render(<HighlightToggleButton />);
-    expect(container).toBeEmptyDOMElement();
+    render(<HighlightToggleButton />);
+    const btn = screen.getByRole('button', { name: '高亮配豆' });
+    expect(btn).toBeInTheDocument();
+    expect(btn).toBeDisabled();
   });
 
   it('点击入口应打开面板', () => {

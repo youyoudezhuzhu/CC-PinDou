@@ -117,18 +117,28 @@ export function Toolbar() {
               <Button variant="icon-sm" color="none" className="bg-[var(--bg-surface)] border-[3px] border-[var(--nook-wood-light)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-alt)]" onClick={openSettings}>
                 <Settings className="w-4 h-4" />
               </Button>
+            </TooltipTrigger>
+            <TooltipContent>设置（品牌 / 色号 / 标识线 / 预览）</TooltipContent>
+          </Tooltip>
+
+          {/* 田字格定位。
+              注意：必须单独用一个 Tooltip 包住，绝不能塞进上面那个 TooltipTrigger ——
+              Radix 的 asChild 要求恰好一个子元素，塞两个会抛
+              "React.Children.only expected to receive a single React element child"
+              并让整棵组件树崩溃（三个模式都会白屏）。 */}
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 variant="icon-sm"
                 color="none"
                 className="bg-[var(--bg-surface)] border-[3px] border-[var(--nook-wood-light)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-alt)]"
                 onClick={() => useUIStore.getState().setGridGuideOpen(!useUIStore.getState().gridGuideOpen)}
                 aria-label="田字格定位"
-                title="田字格定位：5×5 细线 / 10×10 粗线，可上下左右推移"
               >
                 <Grid3X3 className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>设置（品牌 / 色号 / 标识线 / 预览）</TooltipContent>
+            <TooltipContent>田字格定位（5×5 细线 / 10×10 粗线，可整体位移）</TooltipContent>
           </Tooltip>
         </div>
       </div>
