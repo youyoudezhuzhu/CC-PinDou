@@ -12,7 +12,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { isGuideLine } from '../hooks/useCanvasRenderer';
-import { SettingsPanel, type SettingsConfig } from './SettingsPanel';
+import { GridGuidePanel } from './GridGuidePanel';
 import { useConfigStore } from '../store/useConfigStore';
 
 describe('isGuideLine / 分组线判定', () => {
@@ -92,31 +92,13 @@ describe('编辑器与导出共用同一份判定逻辑', () => {
   });
 });
 
-describe('SettingsPanel / 标识线·田字格（已整合进设置）', () => {
-  const baseConfig: SettingsConfig = { brand: 'MARD', showCode: false, circleMode: false };
-  const noop = () => {};
-
-  // 忠实模拟 Toolbar：它订阅整个 config store，所以 canvasConfig 每次都是最新的。
-  // 如果这里传一次性快照，连续点两次方向键就会因为拿到旧的基值而「加不上去」。
-  function PanelHarness() {
-    const canvasConfig = useConfigStore((s) => s.canvasConfig);
-    const updateCanvasConfig = useConfigStore((s) => s.updateCanvasConfig);
-    return (
-      <SettingsPanel
-        mode="draw"
-        config={baseConfig}
-        onChange={noop}
-        canvasConfig={canvasConfig}
-        onCanvasConfigChange={updateCanvasConfig}
-      />
-    );
-  }
-
+describe('GridGuidePanel（右侧栏卡片）', () => {
+  // 忠实模拟 App：右侧栏卡片直接订阅 store，改动实时写回
   function renderPanel() {
-    return render(<PanelHarness />);
+    return render(<GridGuidePanel />);
   }
 
-  /** 按标签文字定位开关，避免依赖 checkbox 的排列顺序 */
+  /** 按标签文字定位开关，避免依赖 checkbox 排列顺序 */
   function switchFor(labelText: string) {
     const label = screen.getByText(labelText);
     const input = label.parentElement?.querySelector('input[type="checkbox"]');
@@ -140,14 +122,14 @@ describe('SettingsPanel / 标识线·田字格（已整合进设置）', () => {
   });
   afterEach(cleanup);
 
-  it('标识线开关必须是实时生效（不走草稿确认）', () => {
+  it('开关必须实时生效（不走草稿确认）', () => {
     renderPanel();
     expect(useConfigStore.getState().canvasConfig.showMarkLines).toBe(false);
-    fireEvent.click(switchFor('标识线 / 田字格'));
+    fireEvent.click(switchFor('显示田字格'));
     expect(useConfigStore.getState().canvasConfig.showMarkLines).toBe(true);
   });
 
-  it('开启后应展示田字格全部设置项', () => {
+  it('开启后应展示全部设置项（含线宽）', () => {
     useConfigStore.setState({
       canvasConfig: { ...useConfigStore.getState().canvasConfig, showMarkLines: true },
     });
@@ -159,7 +141,7 @@ describe('SettingsPanel / 标识线·田字格（已整合进设置）', () => {
     expect(screen.getByText('位移（格）')).toBeInTheDocument();
   });
 
-  it('方向键应逐格移动田字格（实时写入 canvasConfig）', () => {
+  it('方向键应逐格移动田字格（实时写入 canvasConfig，可连续累加）', () => {
     useConfigStore.setState({
       canvasConfig: { ...useConfigStore.getState().canvasConfig, showMarkLines: true },
     });
@@ -218,11 +200,23 @@ describe('SettingsPanel / 标识线·田字格（已整合进设置）', () => {
       },
     });
     renderPanel();
-    expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('5 格')).toBeInTheDocument();
+    expect(screen.getByText('10 格')).toBeInTheDocument();
     expect(screen.getByText('3px')).toBeInTheDocument();
     expect(screen.getByText('6px')).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();
     expect(screen.getByText('-1')).toBeInTheDocument();
+  });
+
+  it('必须挂在右侧栏（App 里位于背景图层面板下方），且不是模态弹窗', () => {
+    const app = readFileSync(path.resolve(__dirname, '../App.tsx'), 'utf8');
+    const imgIdx = app.indexOf('<ImageLayerPanel />');
+    const guideIdx = app.indexOf('<GridGuidePanel />');
+    expect(imgIdx).toBeGreaterThan(-1);
+    expect(guideIdx).toBeGreaterThan(imgIdx);
+    // 不应再出现在设置弹窗里（不能再有绑定 showMarkLines 的控件）
+    const settings = readFileSync(path.resolve(__dirname, 'SettingsPanel.tsx'), 'utf8');
+    expect(settings).not.toContain('showMarkLines');
+    expect(settings).not.toContain('gridOffsetX');
   });
 });

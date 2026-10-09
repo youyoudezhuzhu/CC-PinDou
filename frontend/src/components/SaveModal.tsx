@@ -277,14 +277,10 @@ export function SaveModal({ isOpen, onClose, backendAvailable }: SaveModalProps)
                 <Switch checked={showMarkLines} onChange={(v) => setShowMarkLines(v)} themeColor={theme.main} />
               </div>
               {showMarkLines && (
-                <div className="flex flex-col gap-1.5 px-3 py-2 rounded-lg bg-[var(--theme-draw-light-9)]">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-[var(--theme-draw)]">大格</span>
-                    <Input type="number" size="xs" className="w-[60px] text-center text-xs py-1" value={String(markInterval)} onChange={(e) => setMarkInterval(Number(e.target.value))} min={1} />
-                    <span className="text-[10px] text-[var(--text-muted)]">格</span>
-                  </div>
+                <div className="px-3 py-2 rounded-lg bg-[var(--theme-draw-light-9)]">
                   <span className="text-[10px] text-[var(--text-muted)] leading-snug">
-                    与「设置 → 标识线 / 田字格」同步：小格 {canvasConfig.minorInterval} 格 ·
+                    格子大小与位移跟随右侧栏「标识线 / 田字格」的设置，此处不再重复配置：
+                    小格 {canvasConfig.minorInterval} 格 · 大格 {canvasConfig.markInterval} 格 ·
                     细线 {canvasConfig.minorLineWidth}px · 粗线 {canvasConfig.majorLineWidth}px ·
                     位移 ({canvasConfig.gridOffsetX}, {canvasConfig.gridOffsetY})
                   </span>

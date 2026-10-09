@@ -143,8 +143,6 @@ export function Toolbar() {
           mode={mode}
           config={draftConfig}
           onChange={(patch) => setDraftConfig((prev) => ({ ...prev, ...patch }))}
-          canvasConfig={canvasConfig}
-          onCanvasConfigChange={updateCanvasConfig}
         />
       </Modal>
     </>

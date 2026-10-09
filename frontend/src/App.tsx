@@ -7,6 +7,7 @@ import { PixelPanel } from './components/PixelPanel';
 
 import { DrawToolBar } from './components/DrawToolBar';
 import { BeadLayerPanel } from './components/BeadLayerPanel';
+import { GridGuidePanel } from './components/GridGuidePanel';
 import { ImageLayerPanel } from './components/ImageLayerPanel';
 import { ModeTabs } from './components/ModeTabs';
 import { CanvasEditor } from './components/CanvasEditor';
@@ -446,6 +447,9 @@ export default function App() {
             {gridData && gridData.length > 0 && <EditPanel colorMapping={colorMappingData} />}
             <BeadLayerPanel />
             <ImageLayerPanel />
+            {/* 田字格定位：放在右侧栏而非设置弹窗 ——
+                设置是模态弹窗会把背景模糊，没法边看画布边调位移 */}
+            <GridGuidePanel />
           </aside>
         )}
       </div>

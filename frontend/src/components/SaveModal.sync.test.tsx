@@ -52,8 +52,8 @@ describe('SaveModal 与设置的标识线同步', () => {
     render(<SaveModal isOpen onClose={() => {}} backendAvailable={false} />);
 
     expect(markLinesSwitch().checked).toBe(true);
-    // 大格间隔也要跟着同步
-    expect((screen.getByDisplayValue('12') as HTMLInputElement).value).toBe('12');
+    // 格子大小已不在弹窗里配置，改为只显示跟随结果
+    expect(screen.getByText(/大格 12 格/)).toBeInTheDocument();
   });
 
   it('设置里关闭时，弹窗也应关闭', () => {
@@ -72,9 +72,18 @@ describe('SaveModal 与设置的标识线同步', () => {
     rerender(<SaveModal isOpen onClose={() => {}} backendAvailable={false} />);
 
     expect(markLinesSwitch().checked).toBe(true);
-    expect((screen.getByDisplayValue('20') as HTMLInputElement).value).toBe('20');
-    // 摘要里应带上小格与位移信息
-    expect(screen.getByText(/与「设置 → 标识线 \/ 田字格」同步/)).toBeInTheDocument();
+    // 摘要里应带上小格/大格/线宽/位移，说明导出会带什么
     expect(screen.getByText(/小格 4 格/)).toBeInTheDocument();
+    expect(screen.getByText(/大格 20 格/)).toBeInTheDocument();
+    expect(screen.getByText(/跟随右侧栏「标识线 \/ 田字格」/)).toBeInTheDocument();
+  });
+
+  it('弹窗里不应再出现「格子大小」输入框（避免与标识线设置重复）', () => {
+    useConfigStore.getState().updateCanvasConfig({ showMarkLines: true, markInterval: 12 });
+    render(<SaveModal isOpen onClose={() => {}} backendAvailable={false} />);
+
+    // 原来这里有一个数字输入框，现在应只保留开关 + 同步摘要
+    expect(screen.queryByDisplayValue('12')).toBeNull();
+    expect(screen.queryByRole('spinbutton')).toBeNull();
   });
 });
