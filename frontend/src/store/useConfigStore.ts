@@ -13,6 +13,9 @@ const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
   // 大格 10 + 小格 5 是拼豆图纸最常用的分组（10 颗一组便于数豆）
   markInterval: 10,
   minorInterval: 5,
+  // 线宽默认比原来的 1/2 粗一档，田字格更醒目；用户可在设置里自由调整
+  minorLineWidth: 2,
+  majorLineWidth: 4,
   gridOffsetX: 0,
   gridOffsetY: 0,
 };

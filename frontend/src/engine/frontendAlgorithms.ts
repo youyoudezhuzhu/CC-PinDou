@@ -356,6 +356,9 @@ export interface FrontendExportOptions {
   markInterval: number;
   /** 小格间隔（细线），缺省回退为 markInterval（即只有一级分组） */
   minorInterval?: number;
+  /** 细线 / 粗线粗细（像素） */
+  minorLineWidth?: number;
+  majorLineWidth?: number;
   /** 田字格位移（格） */
   gridOffsetX?: number;
   gridOffsetY?: number;
@@ -376,6 +379,8 @@ export async function exportImageFrontend(
     showMarkLines,
     markInterval,
     minorInterval,
+    minorLineWidth,
+    majorLineWidth,
     gridOffsetX = 0,
     gridOffsetY = 0,
     beadSize = 28,
@@ -457,11 +462,13 @@ export async function exportImageFrontend(
   const majorIv = Number.isFinite(markInterval) && markInterval > 0 ? markInterval : 0;
   const minorIv = Number.isFinite(minorInterval) && (minorInterval ?? 0) > 0 ? (minorInterval as number) : 0;
   const minorOnly = minorIv > 0 && minorIv !== majorIv;
+  const minorW = Math.max(1, minorLineWidth ?? 2);
+  const majorW = Math.max(1, majorLineWidth ?? 4);
 
   const styleFor = (i: number, offset: number): { color: string; width: number } => {
     if (showMarkLines) {
-      if (isGuideLine(i, majorIv, offset)) return { color: '#5D4037', width: 2 };
-      if (minorOnly && isGuideLine(i, minorIv, offset)) return { color: '#8D6E63', width: 1 };
+      if (isGuideLine(i, majorIv, offset)) return { color: '#5D4037', width: majorW };
+      if (minorOnly && isGuideLine(i, minorIv, offset)) return { color: '#8D6E63', width: minorW };
     }
     return { color: '#BCAAA4', width: 1 };
   };

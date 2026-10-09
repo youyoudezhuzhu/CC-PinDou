@@ -29,7 +29,7 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
   const highlightDoneHexes = useHighlightStore((s) => s.doneHexes);
   const highlightHideDone = useHighlightStore((s) => s.hideDone);
 
-  const { beadSize, margin, zoomLevel, showCode, circleMode, showMarkLines, markInterval, minorInterval, gridOffsetX, gridOffsetY } = canvasConfig;
+  const { beadSize, margin, zoomLevel, showCode, circleMode, showMarkLines, markInterval, minorInterval, minorLineWidth, majorLineWidth, gridOffsetX, gridOffsetY } = canvasConfig;
 
   // ========== 缓存 Refs ==========
   const drawGridPendingRef = useRef(false);
@@ -381,6 +381,8 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
       showMarkLines,
       minorInterval,
       majorInterval: markInterval,
+      minorLineWidth,
+      majorLineWidth,
       offsetX: gridOffsetX,
       offsetY: gridOffsetY,
     });
@@ -593,6 +595,8 @@ export function useCanvasRenderer(canvasRef: React.RefObject<HTMLCanvasElement |
     showMarkLines,
     markInterval,
     minorInterval,
+    minorLineWidth,
+    majorLineWidth,
     gridOffsetX,
     gridOffsetY,
     brand,
@@ -820,6 +824,10 @@ export interface GridGuideOptions {
   minorInterval: number;
   /** 大格间隔（粗线） */
   majorInterval: number;
+  /** 细线粗细（像素），缺省 2 */
+  minorLineWidth?: number;
+  /** 粗线粗细（像素），缺省 4 */
+  majorLineWidth?: number;
   /** 田字格 X / Y 方向位移（格，可为负） */
   offsetX: number;
   offsetY: number;
@@ -853,11 +861,13 @@ function drawGridLines(
 
   // 大格与小格相同时只按大格画，避免同一条线被画两遍
   const minorOnly = minorInterval > 0 && minorInterval !== majorInterval;
+  const minorW = Math.max(1, options.minorLineWidth ?? 2);
+  const majorW = Math.max(1, options.majorLineWidth ?? 4);
 
   const styleFor = (i: number, offset: number): GuideStyle => {
     if (showMarkLines) {
-      if (isGuideLine(i, majorInterval, offset)) return { color: '#6b7280', width: 2 };
-      if (minorOnly && isGuideLine(i, minorInterval, offset)) return { color: '#9ca3af', width: 1 };
+      if (isGuideLine(i, majorInterval, offset)) return { color: '#6b7280', width: majorW };
+      if (minorOnly && isGuideLine(i, minorInterval, offset)) return { color: '#9ca3af', width: minorW };
     }
     return { color: '#e5e7eb', width: 1 };
   };

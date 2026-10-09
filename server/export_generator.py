@@ -204,6 +204,7 @@ def _is_guide_line(i, interval, offset):
 def generate_export_image(grid_data, color_list, brand='MARD', show_code=False,
                           show_legend=True, circle_mode=False, show_mark_lines=False,
                           mark_interval=10, minor_interval=5,
+                          minor_line_width=2, major_line_width=4,
                           grid_offset_x=0, grid_offset_y=0, fmt='png',
                           aa_enabled=False, dither_enabled=False, dither_strength=0.5):
     """
@@ -227,6 +228,8 @@ def generate_export_image(grid_data, color_list, brand='MARD', show_code=False,
         minor_interval = 5
     if not isinstance(minor_interval, int):
         minor_interval = int(minor_interval)
+    minor_line_width = max(1, int(minor_line_width or 2))
+    major_line_width = max(1, int(major_line_width or 4))
     grid_offset_x = int(grid_offset_x or 0)
     grid_offset_y = int(grid_offset_y or 0)
     # 大格与小格相同时只按大格画，避免同一条线画两遍
@@ -319,10 +322,10 @@ def generate_export_image(grid_data, color_list, brand='MARD', show_code=False,
     def _style(i, offset):
         if show_mark_lines:
             if _is_guide_line(i, mark_interval, offset):
-                return '#333', 2          # 大格 · 粗线
+                return '#333', major_line_width   # 大格 · 粗线
             if minor_only and _is_guide_line(i, minor_interval, offset):
-                return '#666', 1          # 小格 · 细线
-        return '#999', 1                  # 普通格线
+                return '#666', minor_line_width   # 小格 · 细线
+        return '#999', 1                          # 普通格线
 
     for i in range(rows + 1):
         color, width = _style(i, grid_offset_y)

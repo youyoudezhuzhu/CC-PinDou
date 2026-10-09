@@ -187,6 +187,10 @@ export interface CanvasConfig {
   markInterval: number;
   /** 小格间隔（细线），默认 5 */
   minorInterval: number;
+  /** 细线（小格）粗细，像素，默认 2 */
+  minorLineWidth: number;
+  /** 粗线（大格）粗细，像素，默认 4 */
+  majorLineWidth: number;
   /**
    * 田字格在 X / Y 方向的位移（单位：格，可为负）。
    * 相当于把「无限延伸的田字格」整体平移若干格，方便让分组线对齐自己的图案。

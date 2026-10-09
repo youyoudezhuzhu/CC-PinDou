@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import { useConfigStore } from '../store/useConfigStore';
 import { useUIStore } from '../store/useUIStore';
@@ -31,6 +31,17 @@ export function ExportModal({ isOpen, onClose, backendAvailable }: ExportModalPr
   const [markInterval, setMarkInterval] = useState(canvasConfig.markInterval);
   const safeMarkInterval = Math.max(1, markInterval || 1);
 
+  // 注意：本组件目前全项目未被引用（实际使用的是 SaveModal）。
+  // 一并保持与设置同步，避免以后接线时两边行为分叉。
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!isOpen) return;
+    setShowMarkLines(canvasConfig.showMarkLines);
+    setMarkInterval(canvasConfig.markInterval);
+    setShowCode(canvasConfig.showCode);
+    setCircleMode(canvasConfig.circleMode);
+  }, [isOpen]);
+
   const handleExport = async () => {
     if (!gridData || !colorList.length) return;
 
@@ -51,6 +62,8 @@ export function ExportModal({ isOpen, onClose, backendAvailable }: ExportModalPr
           show_mark_lines: showMarkLines,
           mark_interval: safeMarkInterval,
           minor_interval: canvasConfig.minorInterval,
+          minor_line_width: canvasConfig.minorLineWidth,
+          major_line_width: canvasConfig.majorLineWidth,
           grid_offset_x: canvasConfig.gridOffsetX,
           grid_offset_y: canvasConfig.gridOffsetY,
           format,
@@ -79,6 +92,8 @@ export function ExportModal({ isOpen, onClose, backendAvailable }: ExportModalPr
           showMarkLines,
           markInterval,
           minorInterval: canvasConfig.minorInterval,
+          minorLineWidth: canvasConfig.minorLineWidth,
+          majorLineWidth: canvasConfig.majorLineWidth,
           gridOffsetX: canvasConfig.gridOffsetX,
           gridOffsetY: canvasConfig.gridOffsetY,
         });

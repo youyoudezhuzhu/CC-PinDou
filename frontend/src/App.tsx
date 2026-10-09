@@ -16,7 +16,6 @@ import { BgRemovePanel } from './components/BgRemovePanel';
 
 import { LegendBar } from './components/LegendBar';
 import { BeadHighlightPanel } from './components/BeadHighlightPanel';
-import { GridGuidePanel } from './components/GridGuidePanel';
 import { FloatingZoom } from './components/FloatingZoom';
 import { EditPanel } from './components/EditPanel';
 import { PerlerEngine } from './engine/PerlerEngine';
@@ -477,9 +476,6 @@ export default function App() {
 
       {/* 高亮配豆面板：fixed 定位，三种模式都可用，不会被画布滚动容器裁剪 */}
       {gridData && gridData.length > 0 && <BeadHighlightPanel />}
-
-      {/* 田字格定位面板（fixed，实时生效） */}
-      {gridData && gridData.length > 0 && <GridGuidePanel />}
     </div>
     </TooltipProvider>
   );

@@ -12,9 +12,8 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { isGuideLine } from '../hooks/useCanvasRenderer';
-import { GridGuidePanel } from './GridGuidePanel';
+import { SettingsPanel, type SettingsConfig } from './SettingsPanel';
 import { useConfigStore } from '../store/useConfigStore';
-import { useUIStore } from '../store/useUIStore';
 
 describe('isGuideLine / 分组线判定', () => {
   it('位移为 0 时应落在 0、interval、2×interval…', () => {
@@ -93,7 +92,38 @@ describe('编辑器与导出共用同一份判定逻辑', () => {
   });
 });
 
-describe('GridGuidePanel', () => {
+describe('SettingsPanel / 标识线·田字格（已整合进设置）', () => {
+  const baseConfig: SettingsConfig = { brand: 'MARD', showCode: false, circleMode: false };
+  const noop = () => {};
+
+  // 忠实模拟 Toolbar：它订阅整个 config store，所以 canvasConfig 每次都是最新的。
+  // 如果这里传一次性快照，连续点两次方向键就会因为拿到旧的基值而「加不上去」。
+  function PanelHarness() {
+    const canvasConfig = useConfigStore((s) => s.canvasConfig);
+    const updateCanvasConfig = useConfigStore((s) => s.updateCanvasConfig);
+    return (
+      <SettingsPanel
+        mode="draw"
+        config={baseConfig}
+        onChange={noop}
+        canvasConfig={canvasConfig}
+        onCanvasConfigChange={updateCanvasConfig}
+      />
+    );
+  }
+
+  function renderPanel() {
+    return render(<PanelHarness />);
+  }
+
+  /** 按标签文字定位开关，避免依赖 checkbox 的排列顺序 */
+  function switchFor(labelText: string) {
+    const label = screen.getByText(labelText);
+    const input = label.parentElement?.querySelector('input[type="checkbox"]');
+    if (!input) throw new Error(`未找到「${labelText}」对应的开关`);
+    return input as HTMLInputElement;
+  }
+
   beforeEach(() => {
     useConfigStore.setState({
       canvasConfig: {
@@ -101,33 +131,39 @@ describe('GridGuidePanel', () => {
         showMarkLines: false,
         minorInterval: 5,
         markInterval: 10,
+        minorLineWidth: 2,
+        majorLineWidth: 4,
         gridOffsetX: 0,
         gridOffsetY: 0,
       },
     });
-    useUIStore.setState({ gridGuideOpen: true });
   });
   afterEach(cleanup);
 
-  it('面板关闭时不应渲染', () => {
-    useUIStore.setState({ gridGuideOpen: false });
-    const { container } = render(<GridGuidePanel />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('开关必须是实时生效（直接写 canvasConfig，不走草稿确认）', () => {
-    render(<GridGuidePanel />);
-    const sw = screen.getByRole('checkbox');
+  it('标识线开关必须是实时生效（不走草稿确认）', () => {
+    renderPanel();
     expect(useConfigStore.getState().canvasConfig.showMarkLines).toBe(false);
-    fireEvent.click(sw);
+    fireEvent.click(switchFor('标识线 / 田字格'));
     expect(useConfigStore.getState().canvasConfig.showMarkLines).toBe(true);
   });
 
-  it('方向键应逐格移动田字格', () => {
+  it('开启后应展示田字格全部设置项', () => {
     useConfigStore.setState({
       canvasConfig: { ...useConfigStore.getState().canvasConfig, showMarkLines: true },
     });
-    render(<GridGuidePanel />);
+    renderPanel();
+    expect(screen.getByText('小格 · 细线')).toBeInTheDocument();
+    expect(screen.getByText('大格 · 粗线')).toBeInTheDocument();
+    expect(screen.getByText('细线粗细')).toBeInTheDocument();
+    expect(screen.getByText('粗线粗细')).toBeInTheDocument();
+    expect(screen.getByText('位移（格）')).toBeInTheDocument();
+  });
+
+  it('方向键应逐格移动田字格（实时写入 canvasConfig）', () => {
+    useConfigStore.setState({
+      canvasConfig: { ...useConfigStore.getState().canvasConfig, showMarkLines: true },
+    });
+    renderPanel();
 
     fireEvent.click(screen.getByRole('button', { name: '田字格右移一格' }));
     expect(useConfigStore.getState().canvasConfig.gridOffsetX).toBe(1);
@@ -146,7 +182,7 @@ describe('GridGuidePanel', () => {
     useConfigStore.setState({
       canvasConfig: { ...useConfigStore.getState().canvasConfig, showMarkLines: true },
     });
-    render(<GridGuidePanel />);
+    renderPanel();
     fireEvent.click(screen.getByRole('button', { name: '田字格左移一格' }));
     fireEvent.click(screen.getByRole('button', { name: '田字格上移一格' }));
     expect(useConfigStore.getState().canvasConfig.gridOffsetX).toBe(-1);
@@ -162,26 +198,30 @@ describe('GridGuidePanel', () => {
         gridOffsetY: -3,
       },
     });
-    render(<GridGuidePanel />);
+    renderPanel();
     fireEvent.click(screen.getByRole('button', { name: /归零/ }));
     expect(useConfigStore.getState().canvasConfig.gridOffsetX).toBe(0);
     expect(useConfigStore.getState().canvasConfig.gridOffsetY).toBe(0);
   });
 
-  it('应显示当前的小格/大格与位移数值', () => {
+  it('应显示当前间隔、线宽与位移数值', () => {
     useConfigStore.setState({
       canvasConfig: {
         ...useConfigStore.getState().canvasConfig,
         showMarkLines: true,
         minorInterval: 5,
         markInterval: 10,
+        minorLineWidth: 3,
+        majorLineWidth: 6,
         gridOffsetX: 2,
         gridOffsetY: -1,
       },
     });
-    render(<GridGuidePanel />);
+    renderPanel();
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText('3px')).toBeInTheDocument();
+    expect(screen.getByText('6px')).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();
     expect(screen.getByText('-1')).toBeInTheDocument();
   });

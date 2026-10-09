@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useEditorStore } from '../store/useEditorStore';
 import { useConfigStore } from '../store/useConfigStore';
 import { useUIStore } from '../store/useUIStore';
@@ -36,6 +36,19 @@ export function SaveModal({ isOpen, onClose, backendAvailable }: SaveModalProps)
   const [showMarkLines, setShowMarkLines] = useState(canvasConfig.showMarkLines);
   const [markInterval, setMarkInterval] = useState(canvasConfig.markInterval);
   const safeMarkInterval = Math.max(1, markInterval || 1);
+
+  // 每次打开弹窗都从画布配置重新同步标识线/田字格。
+  // 之前只在组件首次 mount 时初始化过一次，导致「在设置里开了田字格，
+  // 保存弹窗里却还是关的」—— 这里必须跟着设置走。
+  // 故意只依赖 isOpen：弹窗打开期间用户自己的临时改动不被覆盖。
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!isOpen) return;
+    setShowMarkLines(canvasConfig.showMarkLines);
+    setMarkInterval(canvasConfig.markInterval);
+    setShowCode(canvasConfig.showCode);
+    setCircleMode(canvasConfig.circleMode);
+  }, [isOpen]);
 
   const hasGrid = !!gridData && gridData.length > 0;
 
@@ -80,6 +93,8 @@ export function SaveModal({ isOpen, onClose, backendAvailable }: SaveModalProps)
           show_mark_lines: showMarkLines,
           mark_interval: safeMarkInterval,
           minor_interval: canvasConfig.minorInterval,
+          minor_line_width: canvasConfig.minorLineWidth,
+          major_line_width: canvasConfig.majorLineWidth,
           grid_offset_x: canvasConfig.gridOffsetX,
           grid_offset_y: canvasConfig.gridOffsetY,
           format,
@@ -104,6 +119,8 @@ export function SaveModal({ isOpen, onClose, backendAvailable }: SaveModalProps)
           showMarkLines,
           markInterval,
           minorInterval: canvasConfig.minorInterval,
+          minorLineWidth: canvasConfig.minorLineWidth,
+          majorLineWidth: canvasConfig.majorLineWidth,
           gridOffsetX: canvasConfig.gridOffsetX,
           gridOffsetY: canvasConfig.gridOffsetY,
         });
@@ -260,10 +277,17 @@ export function SaveModal({ isOpen, onClose, backendAvailable }: SaveModalProps)
                 <Switch checked={showMarkLines} onChange={(v) => setShowMarkLines(v)} themeColor={theme.main} />
               </div>
               {showMarkLines && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--theme-draw-light-9)]">
-                  <span className="text-xs font-medium text-[var(--theme-draw)]">间隔</span>
-                  <Input type="number" size="xs" className="w-[60px] text-center text-xs py-1" value={String(markInterval)} onChange={(e) => setMarkInterval(Number(e.target.value))} min={1} />
-                  <span className="text-[10px] text-[var(--text-muted)]">格</span>
+                <div className="flex flex-col gap-1.5 px-3 py-2 rounded-lg bg-[var(--theme-draw-light-9)]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-[var(--theme-draw)]">大格</span>
+                    <Input type="number" size="xs" className="w-[60px] text-center text-xs py-1" value={String(markInterval)} onChange={(e) => setMarkInterval(Number(e.target.value))} min={1} />
+                    <span className="text-[10px] text-[var(--text-muted)]">格</span>
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)] leading-snug">
+                    与「设置 → 标识线 / 田字格」同步：小格 {canvasConfig.minorInterval} 格 ·
+                    细线 {canvasConfig.minorLineWidth}px · 粗线 {canvasConfig.majorLineWidth}px ·
+                    位移 ({canvasConfig.gridOffsetX}, {canvasConfig.gridOffsetY})
+                  </span>
                 </div>
               )}
             </div>

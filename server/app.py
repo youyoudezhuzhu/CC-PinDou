@@ -467,6 +467,14 @@ def export_image():
     if minor_interval < 1:
         minor_interval = 1
     try:
+        minor_line_width = int(data.get('minor_line_width', 2))
+    except (TypeError, ValueError):
+        minor_line_width = 2
+    try:
+        major_line_width = int(data.get('major_line_width', 4))
+    except (TypeError, ValueError):
+        major_line_width = 4
+    try:
         grid_offset_x = int(data.get('grid_offset_x', 0))
     except (TypeError, ValueError):
         grid_offset_x = 0
@@ -497,6 +505,8 @@ def export_image():
             show_mark_lines=show_mark_lines,
             mark_interval=mark_interval,
             minor_interval=minor_interval,
+            minor_line_width=minor_line_width,
+            major_line_width=major_line_width,
             grid_offset_x=grid_offset_x,
             grid_offset_y=grid_offset_y, fmt=fmt,
             aa_enabled=aa_enabled,
