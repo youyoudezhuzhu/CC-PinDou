@@ -125,6 +125,24 @@
 
 ---
 
+## 数据来源与致谢
+
+**MARD 色卡数据**（色号、色值）同步自
+[pixel-beads.com — MARD 拼豆色号大全（2026 重新修订版）](https://www.pixel-beads.com/zh/mard-bead-color-chart)，
+授权 **CC BY 4.0**，版权归 **PixelBeads** 所有。
+
+- 权威数据快照：`data/mard-chart/mard-2026-rev.json`（291 色）
+- 同步脚本：`python3 scripts/sync-mard-colors.py`（`--check` 只检查不写入）
+  会统一更新 `frontend/src/data/colorSystemMapping.json`、
+  `data/colorSystemMapping.json` 与 `data/colors.db` 三处，避免手工维护分叉
+- 仅更新 MARD 色值；其他品牌（COCO / 漫漫 / 盼盼 / 咪小窝）与色号一律不动
+- `frontend/src/data/mardColors.test.ts` 会校验数据未再漂移
+
+> 说明：权威色卡中 Q04 与 R11 为同一色值 `#FFEBFA`，而本项目数据结构以 hex 为 key，
+> 无法承载两个 MARD 色号。为不丢失颜色，R11 保留独立值 `#FFEBFB`，
+> 该例外在同步脚本与测试中均已显式登记。
+
+
 ## 静态部署
 
 ```bash
