@@ -1,0 +1,159 @@
+本目录下的字体数据由 frontend/scripts/build-pixel-fonts.mjs 生成。
+
+这些字体都是**逐像素手工绘制的点阵（bitmap）字体**，通过 BDF 转换为紧凑二进制，
+不是把轮廓字体缩小后栅格化的产物，也没有使用加粗或整数倍放大来伪造字形，
+因此在 9~20px 下笔画依然清晰可辨。每个字号都是针对该像素尺寸单独设计的。
+
+══════════════════════════════════════════════
+一、宽松授权字体（OFL-1.1 / MIT / 公有领域）
+══════════════════════════════════════════════
+
+  pixel-8-fusion-mono.bin
+    名称：缝合像素 8px 等宽
+    字面：8×8px，全角步进 8px，字形 4007 个，子集 gb2312-1（缺字 19 个）
+    来源：Fusion Pixel Font（缝合像素字体）
+    授权：SIL Open Font License 1.1
+
+  pixel-10-fusion-mono.bin
+    名称：缝合像素 10px 等宽
+    字面：10×10px，全角步进 10px，字形 4019 个，子集 gb2312-1（缺字 5 个）（弃用超框字形 2 个）
+    来源：Fusion Pixel Font（缝合像素字体）
+    授权：SIL Open Font License 1.1
+
+  pixel-12-fusion-mono.bin
+    名称：缝合像素 12px 等宽
+    字面：12×12px，全角步进 12px，字形 4019 个，子集 gb2312-1（缺字 5 个）（弃用超框字形 2 个）
+    来源：Fusion Pixel Font（缝合像素字体）
+    授权：SIL Open Font License 1.1
+
+  pixel-12-fusion-prop.bin
+    名称：缝合像素 12px 比例
+    字面：12×16px，全角步进 12px，字形 4019 个，子集 gb2312-1（缺字 5 个）（弃用超框字形 2 个）
+    来源：Fusion Pixel Font（缝合像素字体）
+    授权：SIL Open Font License 1.1
+
+  pixel-16-unifont.bin
+    名称：Unifont 16px 等宽
+    字面：16×16px，全角步进 16px，字形 4021 个，子集 gb2312-1（缺字 5 个）
+    来源：GNU Unifont
+    授权：SIL Open Font License 1.1（同时提供 GPLv2+ 与字体嵌入例外，此处按 OFL-1.1 使用）
+
+  pixel-18-x11.bin
+    名称：X11 18px 等宽
+    字面：18×18px，全角步进 18px，字形 3980 个，子集 gb2312-1（缺字 46 个）
+    来源：X11 misc-fixed（Xorg 经典位图字体）
+    授权：Public domain
+
+  pixel-9-x11.bin
+    名称：X11 9px 等宽
+    字面：6×9px，全角步进 6px，字形 214 个，子集 latin（缺字 1 个）
+    来源：X11 misc-fixed（Xorg 经典位图字体）
+    授权：Public domain
+
+  pixel-14-x11.bin
+    名称：X11 14px 等宽
+    字面：7×14px，全角步进 7px，字形 214 个，子集 latin（缺字 1 个）
+    来源：X11 misc-fixed（Xorg 经典位图字体）
+    授权：Public domain
+
+  pixel-20-x11.bin
+    名称：X11 20px 等宽
+    字面：10×20px，全角步进 10px，字形 215 个，子集 latin（无缺字）
+    来源：X11 misc-fixed（Xorg 经典位图字体）
+    授权：Public domain
+
+──────────────────────────────────────────────
+宽松授权来源
+──────────────────────────────────────────────
+Fusion Pixel Font（缝合像素字体）
+  https://github.com/TakWolf/fusion-pixel-font
+  Copyright (c) 2022, TakWolf (https://takwolf.com)
+  授权：SIL Open Font License 1.1
+
+GNU Unifont
+  https://unifoundry.com/unifont/
+  Copyright (C) 1998-2025 Roman Czyborra, Paul Hardy, et al.
+  授权：SIL Open Font License 1.1（同时提供 GPLv2+ 与字体嵌入例外，此处按 OFL-1.1 使用）
+
+X11 misc-fixed（Xorg 经典位图字体）
+  https://gitlab.freedesktop.org/xorg/font/misc-misc
+  Public domain font. Share and enjoy.
+  授权：Public domain
+
+══════════════════════════════════════════════
+二、GPL-2.0 字体（与本项目 MIT 代码分开授权）
+══════════════════════════════════════════════
+
+以下字体数据文件是文泉驿点阵宋体的子集化二进制转换，属于 GPL-2.0 的衍生作品，
+因此**这些 .bin 文件本身以 GPL-2.0 授权**，不适用本项目的 MIT 许可。
+它们与 MIT 代码仅作聚合分发，不影响其余代码的 MIT 授权。
+重新分发时请保留本说明并提供对应源码：
+  https://deb.debian.org/debian/pool/main/x/xfonts-wqy/xfonts-wqy_1.0.0~rc1.orig.tar.gz
+
+  pixel-12-wqy.bin
+    名称：文泉驿点阵宋体 12px
+    字面：12×14px，全角步进 12px，字形 4009 个，子集 gb2312-1（缺字 17 个）
+    来源：文泉驿点阵宋体（WenQuanYi Bitmap Song）
+    授权：GNU GPL v2.0（含字体嵌入例外）
+
+  pixel-13-wqy.bin
+    名称：文泉驿点阵宋体 13px
+    字面：14×15px，全角步进 13px，字形 4009 个，子集 gb2312-1（缺字 17 个）
+    来源：文泉驿点阵宋体（WenQuanYi Bitmap Song）
+    授权：GNU GPL v2.0（含字体嵌入例外）
+
+  pixel-14-wqy.bin
+    名称：文泉驿点阵宋体 14px
+    字面：15×16px，全角步进 14px，字形 3990 个，子集 gb2312-1（缺字 36 个）
+    来源：文泉驿点阵宋体（WenQuanYi Bitmap Song）
+    授权：GNU GPL v2.0（含字体嵌入例外）
+
+  pixel-15-wqy.bin
+    名称：文泉驿点阵宋体 15px
+    字面：17×18px，全角步进 15px，字形 4009 个，子集 gb2312-1（缺字 17 个）
+    来源：文泉驿点阵宋体（WenQuanYi Bitmap Song）
+    授权：GNU GPL v2.0（含字体嵌入例外）
+
+  pixel-16-wqy.bin
+    名称：文泉驿点阵宋体 16px
+    字面：19×19px，全角步进 16px，字形 4007 个，子集 gb2312-1（缺字 17 个）（弃用超框字形 2 个）
+    来源：文泉驿点阵宋体（WenQuanYi Bitmap Song）
+    授权：GNU GPL v2.0（含字体嵌入例外）
+
+──────────────────────────────────────────────
+GPL 来源
+──────────────────────────────────────────────
+文泉驿点阵宋体（WenQuanYi Bitmap Song）
+  http://wenq.org/
+  Copyright (C) 2004-2007, WenQuanYi's Board of Trustees and Qianqian Fang
+  授权：GNU GPL v2.0（含字体嵌入例外）
+
+GNU GPL v2.0 全文见 https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+
+══════════════════════════════════════════════
+三、已排除的字体（附实测原因）
+══════════════════════════════════════════════
+
+  Zpix（最像素）
+    需付费商业授权，且明确禁止修改 / 转换 / 拆分，与本项目的分发方式冲突。
+
+  Ark Pixel 10px / 12px
+    10px：GB2312 一级常用字 3755 个缺 3153 个（84%）。
+    12px：仅缺 172 个（4.6%），但缺的是「热 然 旅 班 药 餐 紫 聚 警 辨 遥 避 酸」
+          这类高频常用字，日常中文几乎必然踩到缺字方框。
+
+  Jelly Pixel（果冻像素）12px
+    GB2312 一级常用字缺 3502 个（93%），实为拉丁字库，无法作为中文选项。
+
+  ChillBitmap（寒蝉点阵体）/ Cubic 11 / ZLabs RoundPix
+    仅提供轮廓格式（ttf / woff2），没有点阵 BDF。
+    栅格化轮廓会糊掉笔画，不符合本项目「必须使用真实点阵」的要求。
+
+  u8g2_wqy
+    仓库自称 MIT，但源本正是文泉驿点阵宋体（GPL-2.0），
+    不能通过重新标注许可洗掉原始授权，因此不采用。
+
+  M+ BITMAP FONTS / k14 / 12x13ja
+    日文位图字体，GB2312 一级常用字缺 37%~79%，中文覆盖率不足。
+
+SIL Open Font License 1.1 全文见 https://openfontlicense.org
